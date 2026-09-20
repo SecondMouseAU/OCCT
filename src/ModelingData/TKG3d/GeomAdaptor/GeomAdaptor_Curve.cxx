@@ -707,7 +707,8 @@ gp_Pnt GeomAdaptor_Curve::EvalD0(const double theU) const
       {
         return myCurve->EvalD0(U);
       }
-      auto& aCache = std::get<BezierData>(myCurveData).Cache;
+      std::lock_guard<std::mutex> aCacheLock(myCacheMutex);
+      auto&                       aCache = std::get<BezierData>(myCurveData).Cache;
       if (aCache.IsNull())
       {
         RebuildCache(U);
@@ -729,6 +730,7 @@ gp_Pnt GeomAdaptor_Curve::EvalD0(const double theU) const
       }
       else
       {
+        std::lock_guard<std::mutex> aCacheLock(myCacheMutex);
         if (aBSplData.Cache.IsNull() || !aBSplData.Cache->IsCacheValid(U))
         {
           RebuildCache(U);
@@ -793,7 +795,8 @@ Geom_Curve::ResD1 GeomAdaptor_Curve::EvalD1(const double theU) const
       {
         return myCurve->EvalD1(U);
       }
-      auto& aCache = std::get<BezierData>(myCurveData).Cache;
+      std::lock_guard<std::mutex> aCacheLock(myCacheMutex);
+      auto&                       aCache = std::get<BezierData>(myCurveData).Cache;
       if (aCache.IsNull())
       {
         RebuildCache(U);
@@ -815,6 +818,7 @@ Geom_Curve::ResD1 GeomAdaptor_Curve::EvalD1(const double theU) const
       }
       else
       {
+        std::lock_guard<std::mutex> aCacheLock(myCacheMutex);
         if (aBSplData.Cache.IsNull() || !aBSplData.Cache->IsCacheValid(U))
         {
           RebuildCache(U);
@@ -881,7 +885,8 @@ Geom_Curve::ResD2 GeomAdaptor_Curve::EvalD2(const double theU) const
       {
         return myCurve->EvalD2(U);
       }
-      auto& aCache = std::get<BezierData>(myCurveData).Cache;
+      std::lock_guard<std::mutex> aCacheLock(myCacheMutex);
+      auto&                       aCache = std::get<BezierData>(myCurveData).Cache;
       if (aCache.IsNull())
       {
         RebuildCache(U);
@@ -903,6 +908,7 @@ Geom_Curve::ResD2 GeomAdaptor_Curve::EvalD2(const double theU) const
       }
       else
       {
+        std::lock_guard<std::mutex> aCacheLock(myCacheMutex);
         if (aBSplData.Cache.IsNull() || !aBSplData.Cache->IsCacheValid(U))
         {
           RebuildCache(U);
@@ -987,7 +993,8 @@ Geom_Curve::ResD3 GeomAdaptor_Curve::EvalD3(const double theU) const
       {
         return myCurve->EvalD3(U);
       }
-      auto& aCache = std::get<BezierData>(myCurveData).Cache;
+      std::lock_guard<std::mutex> aCacheLock(myCacheMutex);
+      auto&                       aCache = std::get<BezierData>(myCurveData).Cache;
       if (aCache.IsNull())
       {
         RebuildCache(U);
@@ -1010,6 +1017,7 @@ Geom_Curve::ResD3 GeomAdaptor_Curve::EvalD3(const double theU) const
       }
       else
       {
+        std::lock_guard<std::mutex> aCacheLock(myCacheMutex);
         if (aBSplData.Cache.IsNull() || !aBSplData.Cache->IsCacheValid(U))
         {
           RebuildCache(U);

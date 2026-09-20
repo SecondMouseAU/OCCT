@@ -31,6 +31,7 @@
 #include <Standard_NullObject.hxx>
 #include <Standard_ConstructionError.hxx>
 
+#include <mutex>
 #include <variant>
 
 class Geom_BSplineCurve;
@@ -45,9 +46,10 @@ class Base;
 //! curve from the package Geom and those required of the curve by algorithms which use it.
 //! Creation of the loaded curve the curve is C1 by piece.
 //!
-//! Polynomial coefficients of BSpline curves used for their evaluation are
-//! cached for better performance. Therefore these evaluations are not
-//! thread-safe and parallel evaluations need to be prevented.
+//! Polynomial coefficients of BSpline curves used for their evaluation are cached for better
+//! performance. The Bezier/BSpline cache (BSplCLib_Cache) and the check-rebuild-evaluate
+//! sequence that creates and replaces it are both internally synchronized (issue #1153), so one
+//! adaptor instance may be evaluated concurrently from multiple threads.
 class GeomAdaptor_Curve : public Adaptor3d_Curve
 {
   DEFINE_STANDARD_RTTIEXT(GeomAdaptor_Curve, Adaptor3d_Curve)
@@ -99,6 +101,32 @@ public:
   }
 
   GeomAdaptor_Curve(const occ::handle<Geom_Curve>& theCurve) { Load(theCurve); }
+
+  //! Copies every field except myCacheMutex: each instance's mutex is its own and is never
+  //! shared or duplicated, so the copy default-constructs a fresh one (issue #1153). Needed
+  //! because GeomAdaptor_TransformedCurve::ShallowCopy() copy-assigns a GeomAdaptor_Curve value.
+  GeomAdaptor_Curve(const GeomAdaptor_Curve& theOther)
+      : myCurve(theOther.myCurve),
+        myTypeCurve(theOther.myTypeCurve),
+        myFirst(theOther.myFirst),
+        myLast(theOther.myLast),
+        myCurveData(theOther.myCurveData)
+  {
+  }
+
+  //! See the copy constructor: myCacheMutex is deliberately left untouched.
+  GeomAdaptor_Curve& operator=(const GeomAdaptor_Curve& theOther)
+  {
+    if (this != &theOther)
+    {
+      myCurve     = theOther.myCurve;
+      myTypeCurve = theOther.myTypeCurve;
+      myFirst     = theOther.myFirst;
+      myLast      = theOther.myLast;
+      myCurveData = theOther.myCurveData;
+    }
+    return *this;
+  }
 
   //! Standard_ConstructionError is raised if theUFirst > theULast + Precision::PConfusion()
   GeomAdaptor_Curve(const occ::handle<Geom_Curve>& theCurve,
@@ -262,6 +290,12 @@ private:
   double                  myFirst;
   double                  myLast;
   CurveDataVariant myCurveData; ///< Curve-specific evaluation data (BSpline, Bezier, offset, etc.)
+
+  //! Guards the Cache handle's check-IsCacheValid/RebuildCache/evaluate sequence in EvalD0-EvalD3
+  //! (issue #1153): without it, two threads sharing this adaptor can both see an invalid cache and
+  //! both replace it, racing on the Cache handle itself and destroying the instance the other is
+  //! mid-evaluation on. Never copied or moved with the adaptor; see the copy constructor above.
+  mutable std::mutex myCacheMutex;
 };
 
 #endif // _GeomAdaptor_Curve_HeaderFile

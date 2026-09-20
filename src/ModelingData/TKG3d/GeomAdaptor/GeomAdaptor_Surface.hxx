@@ -33,6 +33,7 @@
 #include <Standard_NullObject.hxx>
 #include <NCollection_Array1.hxx>
 
+#include <mutex>
 #include <variant>
 
 class GeomAdaptor_Curve;
@@ -49,9 +50,10 @@ class Base;
 //! of the surface by algorithms which use it.
 //! Creation of the loaded surface the surface is C1 by piece
 //!
-//! Polynomial coefficients of BSpline surfaces used for their evaluation are
-//! cached for better performance. Therefore these evaluations are not
-//! thread-safe and parallel evaluations need to be prevented.
+//! Polynomial coefficients of BSpline surfaces used for their evaluation are cached for better
+//! performance. The Bezier/BSpline cache (BSplSLib_Cache) and the check-rebuild-evaluate
+//! sequence that creates and replaces it are both internally synchronized (issue #1153), so one
+//! adaptor instance may be evaluated concurrently from multiple threads.
 class GeomAdaptor_Surface : public Adaptor3d_Surface
 {
   DEFINE_STANDARD_RTTIEXT(GeomAdaptor_Surface, Adaptor3d_Surface)
@@ -142,6 +144,41 @@ public:
                       const double                     theTolV = 0.0)
   {
     Load(theSurf, theUFirst, theULast, theVFirst, theVLast, theTolU, theTolV);
+  }
+
+  //! Copies every field except myCacheMutex: each instance's mutex is its own and is never
+  //! shared or duplicated, so the copy default-constructs a fresh one (issue #1153). Needed
+  //! because GeomAdaptor_TransformedSurface::ShallowCopy() copy-assigns a GeomAdaptor_Surface
+  //! value the same way GeomAdaptor_TransformedCurve does for GeomAdaptor_Curve.
+  GeomAdaptor_Surface(const GeomAdaptor_Surface& theOther)
+      : mySurface(theOther.mySurface),
+        myUFirst(theOther.myUFirst),
+        myULast(theOther.myULast),
+        myVFirst(theOther.myVFirst),
+        myVLast(theOther.myVLast),
+        myTolU(theOther.myTolU),
+        myTolV(theOther.myTolV),
+        mySurfaceType(theOther.mySurfaceType),
+        mySurfaceData(theOther.mySurfaceData)
+  {
+  }
+
+  //! See the copy constructor: myCacheMutex is deliberately left untouched.
+  GeomAdaptor_Surface& operator=(const GeomAdaptor_Surface& theOther)
+  {
+    if (this != &theOther)
+    {
+      mySurface     = theOther.mySurface;
+      myUFirst      = theOther.myUFirst;
+      myULast       = theOther.myULast;
+      myVFirst      = theOther.myVFirst;
+      myVLast       = theOther.myVLast;
+      myTolU        = theOther.myTolU;
+      myTolV        = theOther.myTolV;
+      mySurfaceType = theOther.mySurfaceType;
+      mySurfaceData = theOther.mySurfaceData;
+    }
+    return *this;
   }
 
   //! Shallow copy of adaptor
@@ -386,6 +423,13 @@ protected:
   double                    myTolV;
   GeomAbs_SurfaceType       mySurfaceType;
   SurfaceDataVariant        mySurfaceData; ///< Surface-specific evaluation data
+
+  //! Guards the Cache handle's check-IsCacheValid/RebuildCache/evaluate sequence in D0/D1/D2
+  //! (issue #1153): without it, two threads sharing this adaptor can both see an invalid cache
+  //! and both replace it, racing on the Cache handle itself and destroying the instance the
+  //! other is mid-evaluation on. Never copied or moved with the adaptor; see the copy
+  //! constructor above.
+  mutable std::mutex myCacheMutex;
 };
 
 #endif // _GeomAdaptor_Surface_HeaderFile

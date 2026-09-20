@@ -1051,7 +1051,8 @@ gp_Pnt GeomAdaptor_Surface::EvalD0(const double theU, const double theV) const
       {
         return mySurface->EvalD0(U, V);
       }
-      auto& aCache = std::get<BezierData>(mySurfaceData).Cache;
+      std::lock_guard<std::mutex> aCacheLock(myCacheMutex);
+      auto&                       aCache = std::get<BezierData>(mySurfaceData).Cache;
       if (aCache.IsNull())
       {
         RebuildCache(U, V);
@@ -1064,7 +1065,8 @@ gp_Pnt GeomAdaptor_Surface::EvalD0(const double theU, const double theV) const
       {
         return mySurface->EvalD0(U, V);
       }
-      auto& aCache = std::get<BSplineData>(mySurfaceData).Cache;
+      std::lock_guard<std::mutex> aCacheLock(myCacheMutex);
+      auto&                       aCache = std::get<BSplineData>(mySurfaceData).Cache;
       if (aCache.IsNull() || !aCache->IsCacheValid(U, V))
       {
         RebuildCache(U, V);
@@ -1175,7 +1177,8 @@ Geom_Surface::ResD1 GeomAdaptor_Surface::EvalD1(const double theU, const double 
       {
         return mySurface->EvalD1(U, V);
       }
-      auto& aCache = std::get<BezierData>(mySurfaceData).Cache;
+      std::lock_guard<std::mutex> aCacheLock(myCacheMutex);
+      auto&                       aCache = std::get<BezierData>(mySurfaceData).Cache;
       if (aCache.IsNull())
       {
         RebuildCache(U, V);
@@ -1196,6 +1199,7 @@ Geom_Surface::ResD1 GeomAdaptor_Surface::EvalD1(const double theU, const double 
       }
       else
       {
+        std::lock_guard<std::mutex> aCacheLock(myCacheMutex);
         if (aBSplData.Cache.IsNull() || !aBSplData.Cache->IsCacheValid(U, V))
         {
           RebuildCache(U, V);
@@ -1349,7 +1353,8 @@ Geom_Surface::ResD2 GeomAdaptor_Surface::EvalD2(const double theU, const double 
       {
         return mySurface->EvalD2(U, V);
       }
-      auto& aCache = std::get<BezierData>(mySurfaceData).Cache;
+      std::lock_guard<std::mutex> aCacheLock(myCacheMutex);
+      auto&                       aCache = std::get<BezierData>(mySurfaceData).Cache;
       if (aCache.IsNull())
       {
         RebuildCache(U, V);
@@ -1382,6 +1387,7 @@ Geom_Surface::ResD2 GeomAdaptor_Surface::EvalD2(const double theU, const double 
       }
       else
       {
+        std::lock_guard<std::mutex> aCacheLock(myCacheMutex);
         if (aBSplData.Cache.IsNull() || !aBSplData.Cache->IsCacheValid(U, V))
         {
           RebuildCache(U, V);

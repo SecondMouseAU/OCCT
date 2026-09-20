@@ -18,11 +18,14 @@
 #include <NCollection_HArray2.hxx>
 
 #include <BSplCLib_CacheParams.hxx>
+#include <mutex>
 
 //! \brief A cache class for Bezier and B-spline surfaces.
 //!
 //! Defines all data, that can be cached on a span of the surface.
 //! The data should be recalculated in going from span to span.
+//! Thread-safe: every method locks an internal mutex before touching the mutable cache state,
+//! so one instance may be evaluated concurrently from multiple threads (issue #1153).
 class BSplSLib_Cache : public Standard_Transient
 {
 public:
@@ -158,6 +161,10 @@ private:
                                                 // for non-rational surfaces there is no weight;
                                                 // size of array: (max(myDegree)+1) * A*(min(myDegree)+1), where A = 4 or 3
   // clang-format on
+
+  //! Guards all mutable state above. Recursive because D0() locks once and then calls the
+  //! also-public D0Local() overload, which locks again on the same thread.
+  mutable std::recursive_mutex myMutex;
 };
 
 #endif

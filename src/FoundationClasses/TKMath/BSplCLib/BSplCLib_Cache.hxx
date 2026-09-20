@@ -15,11 +15,14 @@
 #define _BSplCLib_Cache_Headerfile
 
 #include <BSplCLib_CacheParams.hxx>
+#include <mutex>
 
 //! \brief A cache class for Bezier and B-spline curves.
 //!
 //! Defines all data, that can be cached on a span of a curve.
 //! The data should be recalculated in going from span to span.
+//! Thread-safe: every method locks an internal mutex before touching the mutable cache state,
+//! so one instance may be evaluated concurrently from multiple threads (issue #1153).
 class BSplCLib_Cache : public Standard_Transient
 {
 public:
@@ -228,6 +231,11 @@ private:
                                            //!< For 2D-curves: no z component
                                            //!< For non-rational curves: no weight
   // clang-format on
+
+  //! Guards all mutable state above. Recursive because a public entry point taking a flat
+  //! parameter (D0/D1/D2/D3, calculateDerivative) locks once and then calls the corresponding
+  //! *Local overload, which is itself a public entry point and locks again on the same thread.
+  mutable std::recursive_mutex myMutex;
 };
 
 #endif

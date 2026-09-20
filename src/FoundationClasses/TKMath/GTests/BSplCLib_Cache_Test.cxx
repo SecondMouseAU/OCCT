@@ -24,6 +24,9 @@
 
 #include <gtest/gtest.h>
 
+#include <thread>
+#include <vector>
+
 namespace
 {
 constexpr double THE_TOLERANCE = 1e-10;
@@ -518,5 +521,93 @@ TEST_F(BSplCLib_CacheTest, D3_NonRationalCurve3D)
     // Compare torsion
     EXPECT_NEAR(aCacheTors.X(), aDirectTors.X(), THE_TOLERANCE)
       << "D3 torsion X mismatch at u=" << u;
+  }
+}
+
+//=================================================================================================
+// Concurrency
+//=================================================================================================
+
+// One cache evaluated from several threads must give every thread the right point.
+//
+// BSplCLib_Cache holds the span it last built. Evaluating a parameter outside that span rebuilds
+// it, so two threads working at parameters in different spans make one cache rebuild under the
+// other's feet: the second thread then reads polynomial coefficients belonging to a span its
+// parameter is not in. GeomAdaptor_Curve hands the same cache to every caller of its const
+// evaluators, so this is reached without any caller sharing a cache deliberately.
+//
+// Each thread below checks its own results against BSplCLib::D0, so a torn read is a wrong point
+// rather than only a sanitiser report.
+TEST_F(BSplCLib_CacheTest, ConcurrentEvaluationAcrossSpans)
+{
+  // Three spans, so parameters in different spans force rebuilds against each other.
+  NCollection_Array1<gp_Pnt> aPoles(1, 6);
+  aPoles(1) = gp_Pnt(0, 0, 0);
+  aPoles(2) = gp_Pnt(1, 2, 0);
+  aPoles(3) = gp_Pnt(2, -1, 0);
+  aPoles(4) = gp_Pnt(3, 3, 0);
+  aPoles(5) = gp_Pnt(4, 0, 0);
+  aPoles(6) = gp_Pnt(5, 2, 0);
+
+  NCollection_Array1<double> aKnots(1, 4);
+  aKnots(1) = 0.0;
+  aKnots(2) = 0.34;
+  aKnots(3) = 0.67;
+  aKnots(4) = 1.0;
+
+  NCollection_Array1<int> aMults(1, 4);
+  aMults(1) = 4;
+  aMults(2) = 1;
+  aMults(3) = 1;
+  aMults(4) = 4;
+
+  NCollection_Array1<double> aFlatKnots(1, 10);
+  createFlatKnots(aKnots, aMults, aFlatKnots);
+
+  const int aDegree = 3;
+
+  occ::handle<BSplCLib_Cache> aCache =
+    new BSplCLib_Cache(aDegree, false, aFlatKnots, aPoles, nullptr);
+  aCache->BuildCache(0.5, aFlatKnots, aPoles, nullptr);
+
+  constexpr int            aThreadCount = 8;
+  std::vector<std::thread> aThreads;
+  std::vector<int>         aMismatches(aThreadCount, 0);
+
+  for (int aThreadIndex = 0; aThreadIndex < aThreadCount; ++aThreadIndex)
+  {
+    aThreads.emplace_back([&, aThreadIndex]() {
+      // Alternate ends of the domain so consecutive evaluations land in different spans.
+      for (int i = 0; i < 400; ++i)
+      {
+        const double u =
+          ((aThreadIndex + i) % 2 == 0) ? 0.05 + 0.001 * (i % 100) : 0.95 - 0.001 * (i % 100);
+
+        gp_Pnt aCachePnt;
+        if (!aCache->IsCacheValid(u))
+        {
+          aCache->BuildCache(u, aFlatKnots, aPoles, nullptr);
+        }
+        aCache->D0(u, aCachePnt);
+
+        gp_Pnt aDirectPnt;
+        BSplCLib::D0(u, 0, aDegree, false, aPoles, nullptr, aKnots, &aMults, aDirectPnt);
+
+        if (aCachePnt.Distance(aDirectPnt) > 1.0e-7)
+        {
+          ++aMismatches[aThreadIndex];
+        }
+      }
+    });
+  }
+  for (auto& aThread : aThreads)
+  {
+    aThread.join();
+  }
+
+  for (int aThreadIndex = 0; aThreadIndex < aThreadCount; ++aThreadIndex)
+  {
+    EXPECT_EQ(0, aMismatches[aThreadIndex])
+      << "thread " << aThreadIndex << " read a point from the wrong span";
   }
 }

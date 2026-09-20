@@ -15,6 +15,7 @@
 #include <BSplSLib.hxx>
 
 #include <NCollection_LocalArray.hxx>
+#include <mutex>
 
 #include <gp_Pnt.hxx>
 #include <NCollection_Array2.hxx>
@@ -26,6 +27,12 @@ IMPLEMENT_STANDARD_RTTIEXT(BSplSLib_Cache, Standard_Transient)
 
 namespace
 {
+template <typename F>
+auto Locked(std::recursive_mutex& m, F&& f) -> decltype(f())
+{
+  std::lock_guard<std::recursive_mutex> lock(m);
+  return f();
+}
 
 //! Converts handle of array of double into the pointer to double
 double* ConvertArray(const occ::handle<NCollection_HArray2<double>>& theHArray)
@@ -251,7 +258,9 @@ BSplSLib_Cache::BSplSLib_Cache(const int&                        theDegreeU,
 
 bool BSplSLib_Cache::IsCacheValid(double theParameterU, double theParameterV) const
 {
-  return myParamsU.IsCacheValid(theParameterU) && myParamsV.IsCacheValid(theParameterV);
+  return Locked(myMutex, [&]() {
+    return myParamsU.IsCacheValid(theParameterU) && myParamsV.IsCacheValid(theParameterV);
+  });
 }
 
 //=================================================================================================
@@ -263,85 +272,91 @@ void BSplSLib_Cache::BuildCache(const double&                     theParameterU,
                                 const NCollection_Array2<gp_Pnt>& thePoles,
                                 const NCollection_Array2<double>* theWeights)
 {
-  // Normalize the parameters for periodical B-splines
-  double aNewParamU = myParamsU.PeriodicNormalization(theParameterU);
-  double aNewParamV = myParamsV.PeriodicNormalization(theParameterV);
+  Locked(myMutex, [&]() {
+    // Normalize the parameters for periodical B-splines
+    double aNewParamU = myParamsU.PeriodicNormalization(theParameterU);
+    double aNewParamV = myParamsV.PeriodicNormalization(theParameterV);
 
-  myParamsU.LocateParameter(aNewParamU, theFlatKnotsU);
-  myParamsV.LocateParameter(aNewParamV, theFlatKnotsV);
+    myParamsU.LocateParameter(aNewParamU, theFlatKnotsU);
+    myParamsV.LocateParameter(aNewParamV, theFlatKnotsV);
 
-  // BSplSLib uses different convention for span parameters than BSplCLib
-  // (Start is in the middle of the span and length is half-span),
-  // thus we need to amend them here
-  double aSpanLengthU = 0.5 * myParamsU.SpanLength;
-  double aSpanStartU  = myParamsU.SpanStart + aSpanLengthU;
-  double aSpanLengthV = 0.5 * myParamsV.SpanLength;
-  double aSpanStartV  = myParamsV.SpanStart + aSpanLengthV;
+    // BSplSLib uses different convention for span parameters than BSplCLib
+    // (Start is in the middle of the span and length is half-span),
+    // thus we need to amend them here
+    double aSpanLengthU = 0.5 * myParamsU.SpanLength;
+    double aSpanStartU  = myParamsU.SpanStart + aSpanLengthU;
+    double aSpanLengthV = 0.5 * myParamsV.SpanLength;
+    double aSpanStartV  = myParamsV.SpanStart + aSpanLengthV;
 
-  // Calculate new cache data
-  BSplSLib::BuildCache(aSpanStartU,
-                       aSpanStartV,
-                       aSpanLengthU,
-                       aSpanLengthV,
-                       myParamsU.IsPeriodic,
-                       myParamsV.IsPeriodic,
-                       myParamsU.Degree,
-                       myParamsV.Degree,
-                       myParamsU.SpanIndex,
-                       myParamsV.SpanIndex,
-                       theFlatKnotsU,
-                       theFlatKnotsV,
-                       thePoles,
-                       theWeights,
-                       myPolesWeights->ChangeArray2());
+    // Calculate new cache data
+    BSplSLib::BuildCache(aSpanStartU,
+                         aSpanStartV,
+                         aSpanLengthU,
+                         aSpanLengthV,
+                         myParamsU.IsPeriodic,
+                         myParamsV.IsPeriodic,
+                         myParamsU.Degree,
+                         myParamsV.Degree,
+                         myParamsU.SpanIndex,
+                         myParamsV.SpanIndex,
+                         theFlatKnotsU,
+                         theFlatKnotsV,
+                         thePoles,
+                         theWeights,
+                         myPolesWeights->ChangeArray2());
+  });
 }
 
 //=================================================================================================
 
 void BSplSLib_Cache::D0(const double& theU, const double& theV, gp_Pnt& thePoint) const
 {
-  const auto [aLocalU, aLocalV] = toLocalParamsD0(theU, theV, myParamsU, myParamsV);
-  D0Local(aLocalU, aLocalV, thePoint);
+  Locked(myMutex, [&]() {
+    const auto [aLocalU, aLocalV] = toLocalParamsD0(theU, theV, myParamsU, myParamsV);
+    D0Local(aLocalU, aLocalV, thePoint);
+  });
 }
 
 //=================================================================================================
 
 void BSplSLib_Cache::D0Local(double theLocalU, double theLocalV, gp_Pnt& thePoint) const
 {
-  double* aPolesArray = ConvertArray(myPolesWeights);
-  double  aPoint[4]   = {};
+  Locked(myMutex, [&]() {
+    double* aPolesArray = ConvertArray(myPolesWeights);
+    double  aPoint[4]   = {};
 
-  const int  aDimension               = myIsRational ? 4 : 3;
-  const int  aCacheCols               = myPolesWeights->RowLength();
-  const bool isMaxU                   = (myParamsU.Degree > myParamsV.Degree);
-  const auto [aMinDegree, aMaxDegree] = std::minmax(myParamsU.Degree, myParamsV.Degree);
-  const auto [aMinParam, aMaxParam] =
-    isMaxU ? std::make_pair(theLocalV, theLocalU) : std::make_pair(theLocalU, theLocalV);
+    const int  aDimension               = myIsRational ? 4 : 3;
+    const int  aCacheCols               = myPolesWeights->RowLength();
+    const bool isMaxU                   = (myParamsU.Degree > myParamsV.Degree);
+    const auto [aMinDegree, aMaxDegree] = std::minmax(myParamsU.Degree, myParamsV.Degree);
+    const auto [aMinParam, aMaxParam] =
+      isMaxU ? std::make_pair(theLocalV, theLocalU) : std::make_pair(theLocalU, theLocalV);
 
-  // Array for intermediate results
-  NCollection_LocalArray<double> aTransientCoeffs(aCacheCols);
+    // Array for intermediate results
+    NCollection_LocalArray<double> aTransientCoeffs(aCacheCols);
 
-  // Calculate intermediate value of cached polynomial along variable with maximal degree
-  PLib::NoDerivativeEvalPolynomial(aMaxParam,
-                                   aMaxDegree,
-                                   aCacheCols,
-                                   aMaxDegree * aCacheCols,
-                                   aPolesArray[0],
-                                   aTransientCoeffs[0]);
+    // Calculate intermediate value of cached polynomial along variable with maximal degree
+    PLib::NoDerivativeEvalPolynomial(aMaxParam,
+                                     aMaxDegree,
+                                     aCacheCols,
+                                     aMaxDegree * aCacheCols,
+                                     aPolesArray[0],
+                                     aTransientCoeffs[0]);
 
-  // Calculate total value along variable with minimal degree
-  PLib::NoDerivativeEvalPolynomial(aMinParam,
-                                   aMinDegree,
-                                   aDimension,
-                                   aDimension * aMinDegree,
-                                   aTransientCoeffs[0],
-                                   aPoint[0]);
+    // Calculate total value along variable with minimal degree
+    PLib::NoDerivativeEvalPolynomial(aMinParam,
+                                     aMinDegree,
+                                     aDimension,
+                                     aDimension * aMinDegree,
+                                     aTransientCoeffs[0],
+                                     aPoint[0]);
 
-  thePoint.SetCoord(aPoint[0], aPoint[1], aPoint[2]);
-  if (myIsRational)
-  {
-    thePoint.ChangeCoord().Divide(aPoint[3]);
-  }
+    thePoint.SetCoord(aPoint[0], aPoint[1], aPoint[2]);
+    if (myIsRational)
+    {
+      thePoint.ChangeCoord().Divide(aPoint[3]);
+    }
+  });
 }
 
 //=================================================================================================
@@ -352,51 +367,53 @@ void BSplSLib_Cache::D1Local(double  theLocalU,
                              gp_Vec& theTangentU,
                              gp_Vec& theTangentV) const
 {
-  double aPntDeriv[16] = {}; // Result storage for D1, zero-initialized
-  EvaluatePolynomials(myPolesWeights,
-                      myParamsU,
-                      myParamsV,
-                      myIsRational,
-                      theLocalU,
-                      theLocalV,
-                      1,
-                      1,
-                      aPntDeriv);
+  Locked(myMutex, [&]() {
+    double aPntDeriv[16] = {}; // Result storage for D1, zero-initialized
+    EvaluatePolynomials(myPolesWeights,
+                        myParamsU,
+                        myParamsV,
+                        myIsRational,
+                        theLocalU,
+                        theLocalV,
+                        1,
+                        1,
+                        aPntDeriv);
 
-  // After RationalDerivative (for rational surfaces), the output dimension is 3 (not 4)
-  // because weights have been processed out
-  const int aDimension = 3;
+    // After RationalDerivative (for rational surfaces), the output dimension is 3 (not 4)
+    // because weights have been processed out
+    const int aDimension = 3;
 
-  thePoint.SetCoord(aPntDeriv[0], aPntDeriv[1], aPntDeriv[2]);
+    thePoint.SetCoord(aPntDeriv[0], aPntDeriv[1], aPntDeriv[2]);
 
-  // Tangents are stored after the point coordinates
-  // Order depends on which parameter has higher degree
-  // If U degree > V degree: layout is [P, DV, DU, ...]
-  // If V degree >= U degree: layout is [P, DU, DV, ...]
-  if (myParamsU.Degree > myParamsV.Degree)
-  {
-    theTangentV.SetCoord(aPntDeriv[aDimension],
-                         aPntDeriv[aDimension + 1],
-                         aPntDeriv[aDimension + 2]);
-    theTangentU.SetCoord(aPntDeriv[aDimension << 1],
-                         aPntDeriv[(aDimension << 1) + 1],
-                         aPntDeriv[(aDimension << 1) + 2]);
-  }
-  else
-  {
-    theTangentU.SetCoord(aPntDeriv[aDimension],
-                         aPntDeriv[aDimension + 1],
-                         aPntDeriv[aDimension + 2]);
-    theTangentV.SetCoord(aPntDeriv[aDimension << 1],
-                         aPntDeriv[(aDimension << 1) + 1],
-                         aPntDeriv[(aDimension << 1) + 2]);
-  }
+    // Tangents are stored after the point coordinates
+    // Order depends on which parameter has higher degree
+    // If U degree > V degree: layout is [P, DV, DU, ...]
+    // If V degree >= U degree: layout is [P, DU, DV, ...]
+    if (myParamsU.Degree > myParamsV.Degree)
+    {
+      theTangentV.SetCoord(aPntDeriv[aDimension],
+                           aPntDeriv[aDimension + 1],
+                           aPntDeriv[aDimension + 2]);
+      theTangentU.SetCoord(aPntDeriv[aDimension << 1],
+                           aPntDeriv[(aDimension << 1) + 1],
+                           aPntDeriv[(aDimension << 1) + 2]);
+    }
+    else
+    {
+      theTangentU.SetCoord(aPntDeriv[aDimension],
+                           aPntDeriv[aDimension + 1],
+                           aPntDeriv[aDimension + 2]);
+      theTangentV.SetCoord(aPntDeriv[aDimension << 1],
+                           aPntDeriv[(aDimension << 1) + 1],
+                           aPntDeriv[(aDimension << 1) + 2]);
+    }
 
-  // Use direct division for better numerical stability with very small span lengths
-  const double aSpanLengthU = 0.5 * myParamsU.SpanLength;
-  const double aSpanLengthV = 0.5 * myParamsV.SpanLength;
-  theTangentU.Divide(aSpanLengthU);
-  theTangentV.Divide(aSpanLengthV);
+    // Use direct division for better numerical stability with very small span lengths
+    const double aSpanLengthU = 0.5 * myParamsU.SpanLength;
+    const double aSpanLengthV = 0.5 * myParamsV.SpanLength;
+    theTangentU.Divide(aSpanLengthU);
+    theTangentV.Divide(aSpanLengthV);
+  });
 }
 
 //=================================================================================================
@@ -410,64 +427,66 @@ void BSplSLib_Cache::D2Local(double  theLocalU,
                              gp_Vec& theCurvatureV,
                              gp_Vec& theCurvatureUV) const
 {
-  double aPntDeriv[36] = {}; // Result storage for D2, zero-initialized
-  EvaluatePolynomials(myPolesWeights,
-                      myParamsU,
-                      myParamsV,
-                      myIsRational,
-                      theLocalU,
-                      theLocalV,
-                      2,
-                      2,
-                      aPntDeriv);
+  Locked(myMutex, [&]() {
+    double aPntDeriv[36] = {}; // Result storage for D2, zero-initialized
+    EvaluatePolynomials(myPolesWeights,
+                        myParamsU,
+                        myParamsV,
+                        myIsRational,
+                        theLocalU,
+                        theLocalV,
+                        2,
+                        2,
+                        aPntDeriv);
 
-  // After RationalDerivative (for rational surfaces), the output dimension is 3 (not 4)
-  // because weights have been processed out
-  const int aDimension = 3;
-  const int aShift     = aDimension; // Shift for first derivatives
-  const int aShift2    = aDimension << 1;
-  const int aShift3    = aShift2 + aDimension;
-  const int aShift4    = aShift3 + aDimension;
-  const int aShift6    = 6 * aDimension;
+    // After RationalDerivative (for rational surfaces), the output dimension is 3 (not 4)
+    // because weights have been processed out
+    const int aDimension = 3;
+    const int aShift     = aDimension; // Shift for first derivatives
+    const int aShift2    = aDimension << 1;
+    const int aShift3    = aShift2 + aDimension;
+    const int aShift4    = aShift3 + aDimension;
+    const int aShift6    = 6 * aDimension;
 
-  thePoint.SetCoord(aPntDeriv[0], aPntDeriv[1], aPntDeriv[2]);
+    thePoint.SetCoord(aPntDeriv[0], aPntDeriv[1], aPntDeriv[2]);
 
-  // Derivatives are stored consecutively
-  // If Max=U (U degree > V degree):
-  // [0]=P, [Dim]=DV, [2Dim]=DVV
-  // [3Dim]=DU, [4Dim]=DUV
-  // [6Dim]=DUU
-  if (myParamsU.Degree > myParamsV.Degree)
-  {
-    theTangentV.SetCoord(aPntDeriv[aShift], aPntDeriv[aShift + 1], aPntDeriv[aShift + 2]);
-    theCurvatureV.SetCoord(aPntDeriv[aShift2], aPntDeriv[aShift2 + 1], aPntDeriv[aShift2 + 2]);
-    theTangentU.SetCoord(aPntDeriv[aShift3], aPntDeriv[aShift3 + 1], aPntDeriv[aShift3 + 2]);
-    theCurvatureUV.SetCoord(aPntDeriv[aShift4], aPntDeriv[aShift4 + 1], aPntDeriv[aShift4 + 2]);
-    theCurvatureU.SetCoord(aPntDeriv[aShift6], aPntDeriv[aShift6 + 1], aPntDeriv[aShift6 + 2]);
-  }
-  else
-  {
-    // If Max=V (V degree >= U degree):
-    // [0]=P, [Dim]=DU, [2Dim]=DUU
-    // [3Dim]=DV, [4Dim]=DUV (DVU is symmetric)
-    // [6Dim]=DVV
-    theTangentU.SetCoord(aPntDeriv[aShift], aPntDeriv[aShift + 1], aPntDeriv[aShift + 2]);
-    theCurvatureU.SetCoord(aPntDeriv[aShift2], aPntDeriv[aShift2 + 1], aPntDeriv[aShift2 + 2]);
-    theTangentV.SetCoord(aPntDeriv[aShift3], aPntDeriv[aShift3 + 1], aPntDeriv[aShift3 + 2]);
-    theCurvatureUV.SetCoord(aPntDeriv[aShift4], aPntDeriv[aShift4 + 1], aPntDeriv[aShift4 + 2]);
-    theCurvatureV.SetCoord(aPntDeriv[aShift6], aPntDeriv[aShift6 + 1], aPntDeriv[aShift6 + 2]);
-  }
+    // Derivatives are stored consecutively
+    // If Max=U (U degree > V degree):
+    // [0]=P, [Dim]=DV, [2Dim]=DVV
+    // [3Dim]=DU, [4Dim]=DUV
+    // [6Dim]=DUU
+    if (myParamsU.Degree > myParamsV.Degree)
+    {
+      theTangentV.SetCoord(aPntDeriv[aShift], aPntDeriv[aShift + 1], aPntDeriv[aShift + 2]);
+      theCurvatureV.SetCoord(aPntDeriv[aShift2], aPntDeriv[aShift2 + 1], aPntDeriv[aShift2 + 2]);
+      theTangentU.SetCoord(aPntDeriv[aShift3], aPntDeriv[aShift3 + 1], aPntDeriv[aShift3 + 2]);
+      theCurvatureUV.SetCoord(aPntDeriv[aShift4], aPntDeriv[aShift4 + 1], aPntDeriv[aShift4 + 2]);
+      theCurvatureU.SetCoord(aPntDeriv[aShift6], aPntDeriv[aShift6 + 1], aPntDeriv[aShift6 + 2]);
+    }
+    else
+    {
+      // If Max=V (V degree >= U degree):
+      // [0]=P, [Dim]=DU, [2Dim]=DUU
+      // [3Dim]=DV, [4Dim]=DUV (DVU is symmetric)
+      // [6Dim]=DVV
+      theTangentU.SetCoord(aPntDeriv[aShift], aPntDeriv[aShift + 1], aPntDeriv[aShift + 2]);
+      theCurvatureU.SetCoord(aPntDeriv[aShift2], aPntDeriv[aShift2 + 1], aPntDeriv[aShift2 + 2]);
+      theTangentV.SetCoord(aPntDeriv[aShift3], aPntDeriv[aShift3 + 1], aPntDeriv[aShift3 + 2]);
+      theCurvatureUV.SetCoord(aPntDeriv[aShift4], aPntDeriv[aShift4 + 1], aPntDeriv[aShift4 + 2]);
+      theCurvatureV.SetCoord(aPntDeriv[aShift6], aPntDeriv[aShift6 + 1], aPntDeriv[aShift6 + 2]);
+    }
 
-  // Use direct division for better numerical stability with very small span lengths
-  const double aSpanLengthU  = 0.5 * myParamsU.SpanLength;
-  const double aSpanLengthV  = 0.5 * myParamsV.SpanLength;
-  const double aSpanLengthU2 = aSpanLengthU * aSpanLengthU;
-  const double aSpanLengthV2 = aSpanLengthV * aSpanLengthV;
-  theTangentU.Divide(aSpanLengthU);
-  theTangentV.Divide(aSpanLengthV);
-  theCurvatureU.Divide(aSpanLengthU2);
-  theCurvatureV.Divide(aSpanLengthV2);
-  theCurvatureUV.Divide(aSpanLengthU * aSpanLengthV);
+    // Use direct division for better numerical stability with very small span lengths
+    const double aSpanLengthU  = 0.5 * myParamsU.SpanLength;
+    const double aSpanLengthV  = 0.5 * myParamsV.SpanLength;
+    const double aSpanLengthU2 = aSpanLengthU * aSpanLengthU;
+    const double aSpanLengthV2 = aSpanLengthV * aSpanLengthV;
+    theTangentU.Divide(aSpanLengthU);
+    theTangentV.Divide(aSpanLengthV);
+    theCurvatureU.Divide(aSpanLengthU2);
+    theCurvatureV.Divide(aSpanLengthV2);
+    theCurvatureUV.Divide(aSpanLengthU * aSpanLengthV);
+  });
 }
 
 //=================================================================================================
@@ -478,47 +497,49 @@ void BSplSLib_Cache::D1(const double& theU,
                         gp_Vec&       theTangentU,
                         gp_Vec&       theTangentV) const
 {
-  // Use the same inverse values for both parameter transformation and derivative scaling
-  // to maintain numerical consistency with the original implementation
-  double anInvU = 0.0, anInvV = 0.0;
-  const auto [aLocalU, aLocalV] = toLocalParams(theU, theV, myParamsU, myParamsV, anInvU, anInvV);
+  Locked(myMutex, [&]() {
+    // Use the same inverse values for both parameter transformation and derivative scaling
+    // to maintain numerical consistency with the original implementation
+    double anInvU = 0.0, anInvV = 0.0;
+    const auto [aLocalU, aLocalV] = toLocalParams(theU, theV, myParamsU, myParamsV, anInvU, anInvV);
 
-  double aPntDeriv[16] = {};
-  EvaluatePolynomials(myPolesWeights,
-                      myParamsU,
-                      myParamsV,
-                      myIsRational,
-                      aLocalU,
-                      aLocalV,
-                      1,
-                      1,
-                      aPntDeriv);
+    double aPntDeriv[16] = {};
+    EvaluatePolynomials(myPolesWeights,
+                        myParamsU,
+                        myParamsV,
+                        myIsRational,
+                        aLocalU,
+                        aLocalV,
+                        1,
+                        1,
+                        aPntDeriv);
 
-  const int aDimension = 3;
-  thePoint.SetCoord(aPntDeriv[0], aPntDeriv[1], aPntDeriv[2]);
+    const int aDimension = 3;
+    thePoint.SetCoord(aPntDeriv[0], aPntDeriv[1], aPntDeriv[2]);
 
-  if (myParamsU.Degree > myParamsV.Degree)
-  {
-    theTangentV.SetCoord(aPntDeriv[aDimension],
-                         aPntDeriv[aDimension + 1],
-                         aPntDeriv[aDimension + 2]);
-    theTangentU.SetCoord(aPntDeriv[aDimension << 1],
-                         aPntDeriv[(aDimension << 1) + 1],
-                         aPntDeriv[(aDimension << 1) + 2]);
-  }
-  else
-  {
-    theTangentU.SetCoord(aPntDeriv[aDimension],
-                         aPntDeriv[aDimension + 1],
-                         aPntDeriv[aDimension + 2]);
-    theTangentV.SetCoord(aPntDeriv[aDimension << 1],
-                         aPntDeriv[(aDimension << 1) + 1],
-                         aPntDeriv[(aDimension << 1) + 2]);
-  }
+    if (myParamsU.Degree > myParamsV.Degree)
+    {
+      theTangentV.SetCoord(aPntDeriv[aDimension],
+                           aPntDeriv[aDimension + 1],
+                           aPntDeriv[aDimension + 2]);
+      theTangentU.SetCoord(aPntDeriv[aDimension << 1],
+                           aPntDeriv[(aDimension << 1) + 1],
+                           aPntDeriv[(aDimension << 1) + 2]);
+    }
+    else
+    {
+      theTangentU.SetCoord(aPntDeriv[aDimension],
+                           aPntDeriv[aDimension + 1],
+                           aPntDeriv[aDimension + 2]);
+      theTangentV.SetCoord(aPntDeriv[aDimension << 1],
+                           aPntDeriv[(aDimension << 1) + 1],
+                           aPntDeriv[(aDimension << 1) + 2]);
+    }
 
-  // Scale derivatives using the same inverse values used for parameter transformation
-  theTangentU.Multiply(anInvU);
-  theTangentV.Multiply(anInvV);
+    // Scale derivatives using the same inverse values used for parameter transformation
+    theTangentU.Multiply(anInvU);
+    theTangentV.Multiply(anInvV);
+  });
 }
 
 //=================================================================================================
@@ -532,52 +553,54 @@ void BSplSLib_Cache::D2(const double& theU,
                         gp_Vec&       theCurvatureV,
                         gp_Vec&       theCurvatureUV) const
 {
-  // Use the same inverse values for both parameter transformation and derivative scaling
-  // to maintain numerical consistency with the original implementation
-  double anInvU = 0.0, anInvV = 0.0;
-  const auto [aLocalU, aLocalV] = toLocalParams(theU, theV, myParamsU, myParamsV, anInvU, anInvV);
+  Locked(myMutex, [&]() {
+    // Use the same inverse values for both parameter transformation and derivative scaling
+    // to maintain numerical consistency with the original implementation
+    double anInvU = 0.0, anInvV = 0.0;
+    const auto [aLocalU, aLocalV] = toLocalParams(theU, theV, myParamsU, myParamsV, anInvU, anInvV);
 
-  double aPntDeriv[36] = {};
-  EvaluatePolynomials(myPolesWeights,
-                      myParamsU,
-                      myParamsV,
-                      myIsRational,
-                      aLocalU,
-                      aLocalV,
-                      2,
-                      2,
-                      aPntDeriv);
+    double aPntDeriv[36] = {};
+    EvaluatePolynomials(myPolesWeights,
+                        myParamsU,
+                        myParamsV,
+                        myIsRational,
+                        aLocalU,
+                        aLocalV,
+                        2,
+                        2,
+                        aPntDeriv);
 
-  const int aDimension = 3;
-  const int aShift     = aDimension;
-  const int aShift2    = aDimension << 1;
-  const int aShift3    = aShift2 + aDimension;
-  const int aShift4    = aShift3 + aDimension;
-  const int aShift6    = 6 * aDimension;
+    const int aDimension = 3;
+    const int aShift     = aDimension;
+    const int aShift2    = aDimension << 1;
+    const int aShift3    = aShift2 + aDimension;
+    const int aShift4    = aShift3 + aDimension;
+    const int aShift6    = 6 * aDimension;
 
-  thePoint.SetCoord(aPntDeriv[0], aPntDeriv[1], aPntDeriv[2]);
+    thePoint.SetCoord(aPntDeriv[0], aPntDeriv[1], aPntDeriv[2]);
 
-  if (myParamsU.Degree > myParamsV.Degree)
-  {
-    theTangentV.SetCoord(aPntDeriv[aShift], aPntDeriv[aShift + 1], aPntDeriv[aShift + 2]);
-    theCurvatureV.SetCoord(aPntDeriv[aShift2], aPntDeriv[aShift2 + 1], aPntDeriv[aShift2 + 2]);
-    theTangentU.SetCoord(aPntDeriv[aShift3], aPntDeriv[aShift3 + 1], aPntDeriv[aShift3 + 2]);
-    theCurvatureUV.SetCoord(aPntDeriv[aShift4], aPntDeriv[aShift4 + 1], aPntDeriv[aShift4 + 2]);
-    theCurvatureU.SetCoord(aPntDeriv[aShift6], aPntDeriv[aShift6 + 1], aPntDeriv[aShift6 + 2]);
-  }
-  else
-  {
-    theTangentU.SetCoord(aPntDeriv[aShift], aPntDeriv[aShift + 1], aPntDeriv[aShift + 2]);
-    theCurvatureU.SetCoord(aPntDeriv[aShift2], aPntDeriv[aShift2 + 1], aPntDeriv[aShift2 + 2]);
-    theTangentV.SetCoord(aPntDeriv[aShift3], aPntDeriv[aShift3 + 1], aPntDeriv[aShift3 + 2]);
-    theCurvatureUV.SetCoord(aPntDeriv[aShift4], aPntDeriv[aShift4 + 1], aPntDeriv[aShift4 + 2]);
-    theCurvatureV.SetCoord(aPntDeriv[aShift6], aPntDeriv[aShift6 + 1], aPntDeriv[aShift6 + 2]);
-  }
+    if (myParamsU.Degree > myParamsV.Degree)
+    {
+      theTangentV.SetCoord(aPntDeriv[aShift], aPntDeriv[aShift + 1], aPntDeriv[aShift + 2]);
+      theCurvatureV.SetCoord(aPntDeriv[aShift2], aPntDeriv[aShift2 + 1], aPntDeriv[aShift2 + 2]);
+      theTangentU.SetCoord(aPntDeriv[aShift3], aPntDeriv[aShift3 + 1], aPntDeriv[aShift3 + 2]);
+      theCurvatureUV.SetCoord(aPntDeriv[aShift4], aPntDeriv[aShift4 + 1], aPntDeriv[aShift4 + 2]);
+      theCurvatureU.SetCoord(aPntDeriv[aShift6], aPntDeriv[aShift6 + 1], aPntDeriv[aShift6 + 2]);
+    }
+    else
+    {
+      theTangentU.SetCoord(aPntDeriv[aShift], aPntDeriv[aShift + 1], aPntDeriv[aShift + 2]);
+      theCurvatureU.SetCoord(aPntDeriv[aShift2], aPntDeriv[aShift2 + 1], aPntDeriv[aShift2 + 2]);
+      theTangentV.SetCoord(aPntDeriv[aShift3], aPntDeriv[aShift3 + 1], aPntDeriv[aShift3 + 2]);
+      theCurvatureUV.SetCoord(aPntDeriv[aShift4], aPntDeriv[aShift4 + 1], aPntDeriv[aShift4 + 2]);
+      theCurvatureV.SetCoord(aPntDeriv[aShift6], aPntDeriv[aShift6 + 1], aPntDeriv[aShift6 + 2]);
+    }
 
-  // Scale derivatives using the same inverse values used for parameter transformation
-  theTangentU.Multiply(anInvU);
-  theTangentV.Multiply(anInvV);
-  theCurvatureU.Multiply(anInvU * anInvU);
-  theCurvatureV.Multiply(anInvV * anInvV);
-  theCurvatureUV.Multiply(anInvU * anInvV);
+    // Scale derivatives using the same inverse values used for parameter transformation
+    theTangentU.Multiply(anInvU);
+    theTangentV.Multiply(anInvV);
+    theCurvatureU.Multiply(anInvU * anInvU);
+    theCurvatureV.Multiply(anInvV * anInvV);
+    theCurvatureUV.Multiply(anInvU * anInvV);
+  });
 }
