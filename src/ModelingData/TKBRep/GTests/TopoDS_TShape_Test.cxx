@@ -13,6 +13,9 @@
 
 #include <gtest/gtest.h>
 
+#include <thread>
+#include <vector>
+
 #include <BRepBuilderAPI_MakeEdge.hxx>
 #include <BRepBuilderAPI_MakeVertex.hxx>
 #include <BRepPrimAPI_MakeBox.hxx>
@@ -310,4 +313,58 @@ TEST(TopoDS_TShape_Test, NbChildren_ConsistencyWithIterator)
 
   EXPECT_EQ(aNbViaTShape, aNbViaIterator) << "NbChildren should match iterator count";
   EXPECT_EQ(aNbViaTShape, 1);
+}
+
+TEST(TopoDS_TShape_Test, ConcurrentFlagWritesDoNotLoseEachOther)
+{
+  constexpr int aRepeats = 200;
+
+  for (int aRepeat = 0; aRepeat < aRepeats; ++aRepeat)
+  {
+    TopoDS_Shape               aBox    = BRepPrimAPI_MakeBox(1.0, 1.0, 1.0).Shape();
+    occ::handle<TopoDS_TShape> aTShape = aBox.TShape();
+
+    aTShape->Free(false);
+    aTShape->Modified(false);
+    aTShape->Checked(false);
+
+    std::vector<std::thread> aThreads;
+    aThreads.emplace_back([&aTShape]() { aTShape->Free(true); });
+    aThreads.emplace_back([&aTShape]() { aTShape->Modified(true); });
+    aThreads.emplace_back([&aTShape]() { aTShape->Checked(true); });
+    for (auto& aThread : aThreads)
+    {
+      aThread.join();
+    }
+
+    ASSERT_TRUE(aTShape->Free()) << "Free was lost on repeat " << aRepeat;
+    ASSERT_TRUE(aTShape->Modified()) << "Modified was lost on repeat " << aRepeat;
+    ASSERT_TRUE(aTShape->Checked()) << "Checked was lost on repeat " << aRepeat;
+  }
+}
+
+// The shape type shares the same word as the flags, so a flag write must not disturb it.
+TEST(TopoDS_TShape_Test, ConcurrentFlagWritesPreserveShapeType)
+{
+  TopoDS_Shape               aBox      = BRepPrimAPI_MakeBox(1.0, 1.0, 1.0).Shape();
+  occ::handle<TopoDS_TShape> aTShape   = aBox.TShape();
+  const TopAbs_ShapeEnum     aExpected = aTShape->ShapeType();
+
+  std::vector<std::thread> aThreads;
+  for (int aThreadIndex = 0; aThreadIndex < 4; ++aThreadIndex)
+  {
+    aThreads.emplace_back([&aTShape]() {
+      for (int i = 0; i < 500; ++i)
+      {
+        aTShape->Modified(i % 2 == 0);
+        aTShape->Checked(i % 3 == 0);
+      }
+    });
+  }
+  for (auto& aThread : aThreads)
+  {
+    aThread.join();
+  }
+
+  EXPECT_EQ(aExpected, aTShape->ShapeType());
 }
