@@ -107,7 +107,11 @@ void OSD_Directory::Build(const OSD_Protection& theProtect)
   TCollection_AsciiString aBuffer;
   mode_t                  anInternalProt = (mode_t)theProtect.Internal();
   myPath.SystemName(aBuffer);
+#ifdef __wasi__
+  // WASI doesn't have umask
+#else
   umask(0);
+#endif
   int aStatus = mkdir(aBuffer.ToCString(), anInternalProt);
   if (aStatus == -1 && errno == ENOENT)
   {
@@ -151,8 +155,16 @@ OSD_Directory OSD_Directory::BuildTemporary()
   return aDir;
 #else
   // create a temporary directory with 0700 permissions
+#ifdef __wasi__
+  // WASI doesn't have mkdtemp, use a simple random name
+  static int counter = 0;
+  char aTmpName[64];
+  snprintf(aTmpName, sizeof(aTmpName), "/tmp/occt_%d_%d", getpid(), counter++);
+  if (mkdir(aTmpName, 0700) != 0)
+#else
   char aTmpName[] = "/tmp/CSFXXXXXX";
   if (nullptr == mkdtemp(aTmpName))
+#endif
   {
     return OSD_Directory(); // can't create a directory
   }
