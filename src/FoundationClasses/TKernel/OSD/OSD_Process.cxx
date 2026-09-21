@@ -40,7 +40,7 @@ const OSD_WhoAmI Iam = OSD_WProcess;
   #include <cstdlib>
   #include <sys/param.h>
   #include <sys/time.h>
-  #if !defined(__EMSCRIPTEN__)
+  #if !defined(__EMSCRIPTEN__) && !defined(__wasi__)
     #include <pwd.h> // For command getpwuid
   #endif
   #include <unistd.h>
