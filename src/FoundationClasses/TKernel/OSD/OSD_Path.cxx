@@ -41,6 +41,10 @@ static OSD_SysType whereAmI()
 #elif defined(_AIX) || defined(AIX)
   return OSD_Aix;
 #else
+#ifdef __wasi__
+  // WASI doesn't have utsname/uname
+  return OSD_Default;
+#else
   struct utsname info;
   uname(&info);
   std::cout << info.sysname << std::endl;
@@ -49,6 +53,7 @@ static OSD_SysType whereAmI()
   std::cout << info.version << std::endl;
   std::cout << info.machine << std::endl;
   return OSD_Default;
+#endif
 #endif
 }
 
