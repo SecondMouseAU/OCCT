@@ -28,6 +28,10 @@
 
 #include <shared_mutex>
 #include <mutex>
+#ifdef __wasi__
+// WASI noeh libc++ doesn't have shared_mutex - use spinlock
+#include <atomic>
+#endif
 
 //=================================================================================================
 
@@ -38,16 +42,34 @@ occ::handle<Standard_Transient> Plugin::Load(const Standard_GUID& aGUID, const b
   aGUID.ToCString(aPluginId);
   TCollection_AsciiString pid(aPluginId);
 
+#ifndef __wasi__
   static std::shared_mutex                                          aMapMutex;
+#else
+  // WASI noeh libc++ doesn't have shared_mutex - use spinlock
+  static std::atomic_flag       aMapSpinlock = ATOMIC_FLAG_INIT;
+  static int                    aReadersCount = 0;
+  static std::atomic_flag       aWriterLock = ATOMIC_FLAG_INIT;
+#endif
   static NCollection_DataMap<TCollection_AsciiString, OSD_Function> theMapOfFunctions;
   OSD_Function                                                      f;
 
   // Fast path: read-only cache lookup under shared lock.
   {
+#ifndef __wasi__
     std::shared_lock<std::shared_mutex> aReadLock(aMapMutex);
+#else
+    // WASI: spinlock-based read lock
+    while (aWriterLock.test_and_set(std::memory_order_acquire)) {}
+    aReadersCount++;
+    aWriterLock.clear(std::memory_order_release);
+#endif
     if (theMapOfFunctions.Find(pid, f))
     {
+#ifndef __wasi__
       aReadLock.unlock();
+#else
+      aReadersCount--;
+#endif;
       Standard_Transient* (*fp)(const Standard_GUID&) =
         reinterpret_cast<Standard_Transient* (*)(const Standard_GUID&)>(reinterpret_cast<void*>(f));
       return (*fp)(aGUID);
