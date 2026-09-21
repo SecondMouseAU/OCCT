@@ -46,25 +46,47 @@ public:
   //! Set event into signaling state.
   void Set()
   {
+#ifdef __wasi__
+  // Spinlock for WASI
+  while (mySpinlock.test_and_set(std::memory_order_acquire)) {}
+  myFlag = true;
+  mySignaled = 1;
+  mySpinlock.clear(std::memory_order_release);
+#else
     {
       std::lock_guard<std::mutex> aLock(myMutex);
       myFlag = true;
     }
     myCondition.notify_all();
+#endif
   }
 
   //! Reset event (unset signaling state)
   void Reset()
   {
+#ifdef __wasi__
+  while (mySpinlock.test_and_set(std::memory_order_acquire)) {}
+  myFlag = false;
+  mySignaled = 0;
+  mySpinlock.clear(std::memory_order_release);
+#else
     std::lock_guard<std::mutex> aLock(myMutex);
     myFlag = false;
+#endif
   }
 
   //! Wait for Event (infinity).
   void Wait()
   {
+#ifdef __wasi__
+  // Busy wait for WASI with yield
+  while (!myFlag.load(std::memory_order_acquire)) {
+    std::this_thread::yield();
+  }
+#else
     std::unique_lock<std::mutex> aLock(myMutex);
     myCondition.wait(aLock, [this] { return myFlag.load(); });
+#endif
   }
 
   //! Wait for signal requested time.
@@ -72,24 +94,46 @@ public:
   //! @return true if get event
   bool Wait(int theTimeMilliseconds)
   {
+#ifdef __wasi__
+  // Busy wait with timeout for WASI
+  auto start = std::chrono::steady_clock::now();
+  while (!myFlag.load(std::memory_order_acquire)) {
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count();
+    if (elapsed >= theTimeMilliseconds) {
+      return false;
+    }
+    std::this_thread::yield();
+  }
+  return true;
+#else
     std::unique_lock<std::mutex> aLock(myMutex);
     auto                         aTimeout = std::chrono::milliseconds(theTimeMilliseconds);
     return myCondition.wait_for(aLock, aTimeout, [this] { return myFlag.load(); });
+#endif
   }
 
   //! Do not wait for signal - just test it state.
   //! @return true if get event
-  bool Check() { return myFlag.load(); }
+  bool Check() { return myFlag.load(std::memory_order_acquire); }
 
   //! Method perform two steps at-once - reset the event object
   //! and returns true if it was in signaling state.
   //! @return true if event object was in signaling state.
   bool CheckReset()
   {
+#ifdef __wasi__
+  while (mySpinlock.test_and_set(std::memory_order_acquire)) {}
+  bool wasSignalled = myFlag.load(std::memory_order_acquire);
+  myFlag = false;
+  mySpinlock.clear(std::memory_order_release);
+  return wasSignalled;
+#else
     std::lock_guard<std::mutex> aLock(myMutex);
-    bool                        wasSignalled = myFlag.load();
+    bool                        wasSignalled = myFlag.load(std::memory_order_acquire);
     myFlag                                   = false;
     return wasSignalled;
+#endif
   }
 
 private:
@@ -99,8 +143,15 @@ private:
   Standard_Condition& operator=(const Standard_Condition& theCopy) = delete;
 
 private:
+#ifdef __wasi__
+  // WASI noeh libc++ doesn't have std::mutex/std::condition_variable
+  // Use spinlock and busy-wait instead
+  std::atomic_flag       mySpinlock = ATOMIC_FLAG_INIT;
+  std::atomic<int>       mySignaled{0};
+#else
   std::mutex              myMutex;
   std::condition_variable myCondition;
+#endif
   std::atomic<bool>       myFlag;
 };
 
