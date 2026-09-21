@@ -1507,7 +1507,17 @@ void OSD_File::UnLock()
 
   struct flock aLockKey;
   aLockKey.l_type   = F_UNLCK;
+  aLockKey.l_whence = 0;
+  aLockKey.l_start  = 0;
+  aLockKey.l_len    = 0;
+#ifdef __wasi__
+  // WASI doesn't have fcntl file locking
+  static thread_local std::atomic_flag fileLock = ATOMIC_FLAG_INIT;
+  fileLock.clear(std::memory_order_release);
+  const int aStatus = 0;
+#else
   const int aStatus = fcntl(myFileChannel, F_SETLK, &aLockKey);
+#endif
   if (aStatus == -1)
   {
     myError.SetValue(errno, Iam, "UnSetLock");
