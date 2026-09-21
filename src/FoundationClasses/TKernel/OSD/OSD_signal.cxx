@@ -725,6 +725,8 @@ LONG _osd_debug(void)
 
 #else /* ! _WIN32 */
 
+#ifndef __wasi__
+
 //---------- All Systems except Windows NT : ----------------------------------
 
   #include <cstdio>
@@ -746,8 +748,44 @@ LONG _osd_debug(void)
   #ifdef __linux__
     #include <cfenv>
   // #include  <fenv.h>
-  #endif
+  #else // __wasi__
 
+// WASI doesn't have POSIX signals - provide minimal stubs
+#include <cstdio>
+#include <OSD_WhoAmI.hxx>
+#include <OSD_SIGHUP.hxx>
+#include <OSD_SIGINT.hxx>
+#include <OSD_SIGQUIT.hxx>
+#include <OSD_SIGILL.hxx>
+#include <OSD_SIGKILL.hxx>
+#include <OSD_SIGBUS.hxx>
+#include <OSD_SIGSEGV.hxx>
+#include <OSD_SIGSYS.hxx>
+#include <Standard_NumericError.hxx>
+
+#include <pthread.h>
+
+typedef void (*SIG_PFV)(int);
+
+#define _OSD_FPX (FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW)
+
+// WASI: no POSIX signals - provide minimal stubs
+static void Handler(const int /*theSignal*/) {}
+
+static void SegvHandler(const int) {}
+
+void OSD::SetFloatingSignal(bool /*theFloatingSignal*/) {}
+
+bool OSD::ToCatchFloatingSignals() { return false; }
+
+void OSD::SetThreadLocalSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::SetSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::ControlBreak() {}
+
+#endif // __wasi__
+#endif // ! _WIN32
 // variable signalling that Control-C has been pressed (SIGINT signal)
 static bool fCtrlBrk;
 
@@ -761,14 +799,122 @@ std::atomic<ACT_SIGIO_HANDLER*> ADR_ACT_SIGIO_HANDLER{nullptr};
   #else
     #ifdef SA_SIGINFO
       #include <sys/siginfo.h>
-    #endif
-  #endif
+    #else // __wasi__
+
+// WASI doesn't have POSIX signals - provide minimal stubs
+#include <cstdio>
+#include <OSD_WhoAmI.hxx>
+#include <OSD_SIGHUP.hxx>
+#include <OSD_SIGINT.hxx>
+#include <OSD_SIGQUIT.hxx>
+#include <OSD_SIGILL.hxx>
+#include <OSD_SIGKILL.hxx>
+#include <OSD_SIGBUS.hxx>
+#include <OSD_SIGSEGV.hxx>
+#include <OSD_SIGSYS.hxx>
+#include <Standard_NumericError.hxx>
+
+#include <pthread.h>
+
 typedef void (*SIG_PFV)(int);
+
+#define _OSD_FPX (FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW)
+
+// WASI: no POSIX signals - provide minimal stubs
+static void Handler(const int /*theSignal*/) {}
+
+static void SegvHandler(const int) {}
+
+void OSD::SetFloatingSignal(bool /*theFloatingSignal*/) {}
+
+bool OSD::ToCatchFloatingSignals() { return false; }
+
+void OSD::SetThreadLocalSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::SetSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::ControlBreak() {}
+
+#endif // __wasi__
+#endif // ! _WIN32  #else // __wasi__
+
+// WASI doesn't have POSIX signals - provide minimal stubs
+#include <cstdio>
+#include <OSD_WhoAmI.hxx>
+#include <OSD_SIGHUP.hxx>
+#include <OSD_SIGINT.hxx>
+#include <OSD_SIGQUIT.hxx>
+#include <OSD_SIGILL.hxx>
+#include <OSD_SIGKILL.hxx>
+#include <OSD_SIGBUS.hxx>
+#include <OSD_SIGSEGV.hxx>
+#include <OSD_SIGSYS.hxx>
+#include <Standard_NumericError.hxx>
+
+#include <pthread.h>
+
+typedef void (*SIG_PFV)(int);
+
+#define _OSD_FPX (FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW)
+
+// WASI: no POSIX signals - provide minimal stubs
+static void Handler(const int /*theSignal*/) {}
+
+static void SegvHandler(const int) {}
+
+void OSD::SetFloatingSignal(bool /*theFloatingSignal*/) {}
+
+bool OSD::ToCatchFloatingSignals() { return false; }
+
+void OSD::SetThreadLocalSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::SetSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::ControlBreak() {}
+
+#endif // __wasi__
+#endif // ! _WIN32typedef void (*SIG_PFV)(int);
 
   #if !defined(__ANDROID__) && !defined(__QNX__) && !defined(__EMSCRIPTEN__) && defined(__GLIBC__)
     #include <sys/signal.h>
-  #endif
+  #else // __wasi__
 
+// WASI doesn't have POSIX signals - provide minimal stubs
+#include <cstdio>
+#include <OSD_WhoAmI.hxx>
+#include <OSD_SIGHUP.hxx>
+#include <OSD_SIGINT.hxx>
+#include <OSD_SIGQUIT.hxx>
+#include <OSD_SIGILL.hxx>
+#include <OSD_SIGKILL.hxx>
+#include <OSD_SIGBUS.hxx>
+#include <OSD_SIGSEGV.hxx>
+#include <OSD_SIGSYS.hxx>
+#include <Standard_NumericError.hxx>
+
+#include <pthread.h>
+
+typedef void (*SIG_PFV)(int);
+
+#define _OSD_FPX (FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW)
+
+// WASI: no POSIX signals - provide minimal stubs
+static void Handler(const int /*theSignal*/) {}
+
+static void SegvHandler(const int) {}
+
+void OSD::SetFloatingSignal(bool /*theFloatingSignal*/) {}
+
+bool OSD::ToCatchFloatingSignals() { return false; }
+
+void OSD::SetThreadLocalSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::SetSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::ControlBreak() {}
+
+#endif // __wasi__
+#endif // ! _WIN32
   #define _OSD_FPX (FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW)
 
   //============================================================================
@@ -794,8 +940,44 @@ typedef void (*SIG_PFV)(int);
 static void Handler(const int theSignal, siginfo_t* /*theSigInfo*/, void* const /*theContext*/)
   #else
 static void Handler(const int theSignal)
-  #endif
-{
+  #else // __wasi__
+
+// WASI doesn't have POSIX signals - provide minimal stubs
+#include <cstdio>
+#include <OSD_WhoAmI.hxx>
+#include <OSD_SIGHUP.hxx>
+#include <OSD_SIGINT.hxx>
+#include <OSD_SIGQUIT.hxx>
+#include <OSD_SIGILL.hxx>
+#include <OSD_SIGKILL.hxx>
+#include <OSD_SIGBUS.hxx>
+#include <OSD_SIGSEGV.hxx>
+#include <OSD_SIGSYS.hxx>
+#include <Standard_NumericError.hxx>
+
+#include <pthread.h>
+
+typedef void (*SIG_PFV)(int);
+
+#define _OSD_FPX (FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW)
+
+// WASI: no POSIX signals - provide minimal stubs
+static void Handler(const int /*theSignal*/) {}
+
+static void SegvHandler(const int) {}
+
+void OSD::SetFloatingSignal(bool /*theFloatingSignal*/) {}
+
+bool OSD::ToCatchFloatingSignals() { return false; }
+
+void OSD::SetThreadLocalSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::SetSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::ControlBreak() {}
+
+#endif // __wasi__
+#endif // ! _WIN32{
   struct sigaction oldact, act;
   // re-install the signal
   if (!sigaction(theSignal, nullptr, &oldact))
@@ -861,14 +1043,86 @@ static void Handler(const int theSignal)
       Standard_ErrorHandler::Abort(OSD_SIGSYS("SIGSYS 'bad argument to system call' detected."));
       exit(SIGSYS);
       break;
-  #endif
-    case SIGFPE:
+  #else // __wasi__
+
+// WASI doesn't have POSIX signals - provide minimal stubs
+#include <cstdio>
+#include <OSD_WhoAmI.hxx>
+#include <OSD_SIGHUP.hxx>
+#include <OSD_SIGINT.hxx>
+#include <OSD_SIGQUIT.hxx>
+#include <OSD_SIGILL.hxx>
+#include <OSD_SIGKILL.hxx>
+#include <OSD_SIGBUS.hxx>
+#include <OSD_SIGSEGV.hxx>
+#include <OSD_SIGSYS.hxx>
+#include <Standard_NumericError.hxx>
+
+#include <pthread.h>
+
+typedef void (*SIG_PFV)(int);
+
+#define _OSD_FPX (FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW)
+
+// WASI: no POSIX signals - provide minimal stubs
+static void Handler(const int /*theSignal*/) {}
+
+static void SegvHandler(const int) {}
+
+void OSD::SetFloatingSignal(bool /*theFloatingSignal*/) {}
+
+bool OSD::ToCatchFloatingSignals() { return false; }
+
+void OSD::SetThreadLocalSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::SetSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::ControlBreak() {}
+
+#endif // __wasi__
+#endif // ! _WIN32    case SIGFPE:
       sigaddset(&set, SIGFPE);
       sigprocmask(SIG_UNBLOCK, &set, nullptr);
   #ifdef __linux__
       OSD::SetFloatingSignal(true);
-  #endif
-  #if (!defined(__sun)) && (!defined(SOLARIS))
+  #else // __wasi__
+
+// WASI doesn't have POSIX signals - provide minimal stubs
+#include <cstdio>
+#include <OSD_WhoAmI.hxx>
+#include <OSD_SIGHUP.hxx>
+#include <OSD_SIGINT.hxx>
+#include <OSD_SIGQUIT.hxx>
+#include <OSD_SIGILL.hxx>
+#include <OSD_SIGKILL.hxx>
+#include <OSD_SIGBUS.hxx>
+#include <OSD_SIGSEGV.hxx>
+#include <OSD_SIGSYS.hxx>
+#include <Standard_NumericError.hxx>
+
+#include <pthread.h>
+
+typedef void (*SIG_PFV)(int);
+
+#define _OSD_FPX (FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW)
+
+// WASI: no POSIX signals - provide minimal stubs
+static void Handler(const int /*theSignal*/) {}
+
+static void SegvHandler(const int) {}
+
+void OSD::SetFloatingSignal(bool /*theFloatingSignal*/) {}
+
+bool OSD::ToCatchFloatingSignals() { return false; }
+
+void OSD::SetThreadLocalSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::SetSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::ControlBreak() {}
+
+#endif // __wasi__
+#endif // ! _WIN32  #if (!defined(__sun)) && (!defined(SOLARIS))
       Standard_ErrorHandler::Abort(Standard_NumericError("SIGFPE Arithmetic exception detected"));
       break;
   #else
@@ -907,13 +1161,85 @@ static void Handler(const int theSignal)
       {
         Standard_ErrorHandler::Abort(Standard_NumericError("SIGFPE Arithmetic exception detected"));
       }
-  #endif
-      break;
+  #else // __wasi__
+
+// WASI doesn't have POSIX signals - provide minimal stubs
+#include <cstdio>
+#include <OSD_WhoAmI.hxx>
+#include <OSD_SIGHUP.hxx>
+#include <OSD_SIGINT.hxx>
+#include <OSD_SIGQUIT.hxx>
+#include <OSD_SIGILL.hxx>
+#include <OSD_SIGKILL.hxx>
+#include <OSD_SIGBUS.hxx>
+#include <OSD_SIGSEGV.hxx>
+#include <OSD_SIGSYS.hxx>
+#include <Standard_NumericError.hxx>
+
+#include <pthread.h>
+
+typedef void (*SIG_PFV)(int);
+
+#define _OSD_FPX (FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW)
+
+// WASI: no POSIX signals - provide minimal stubs
+static void Handler(const int /*theSignal*/) {}
+
+static void SegvHandler(const int) {}
+
+void OSD::SetFloatingSignal(bool /*theFloatingSignal*/) {}
+
+bool OSD::ToCatchFloatingSignals() { return false; }
+
+void OSD::SetThreadLocalSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::SetSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::ControlBreak() {}
+
+#endif // __wasi__
+#endif // ! _WIN32      break;
     default:
   #ifdef OCCT_DEBUG
       std::cout << "Unexpected signal " << theSignal << std::endl;
-  #endif
-      break;
+  #else // __wasi__
+
+// WASI doesn't have POSIX signals - provide minimal stubs
+#include <cstdio>
+#include <OSD_WhoAmI.hxx>
+#include <OSD_SIGHUP.hxx>
+#include <OSD_SIGINT.hxx>
+#include <OSD_SIGQUIT.hxx>
+#include <OSD_SIGILL.hxx>
+#include <OSD_SIGKILL.hxx>
+#include <OSD_SIGBUS.hxx>
+#include <OSD_SIGSEGV.hxx>
+#include <OSD_SIGSYS.hxx>
+#include <Standard_NumericError.hxx>
+
+#include <pthread.h>
+
+typedef void (*SIG_PFV)(int);
+
+#define _OSD_FPX (FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW)
+
+// WASI: no POSIX signals - provide minimal stubs
+static void Handler(const int /*theSignal*/) {}
+
+static void SegvHandler(const int) {}
+
+void OSD::SetFloatingSignal(bool /*theFloatingSignal*/) {}
+
+bool OSD::ToCatchFloatingSignals() { return false; }
+
+void OSD::SetThreadLocalSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::SetSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::ControlBreak() {}
+
+#endif // __wasi__
+#endif // ! _WIN32      break;
   }
 }
 
@@ -954,8 +1280,44 @@ static void SegvHandler(const int theSignal, siginfo_t* theSigInfo, void* const 
   {
     std::cout << "Wrong undefined address." << std::endl;
   }
-    #endif
-  exit(SIGSEGV);
+    #else // __wasi__
+
+// WASI doesn't have POSIX signals - provide minimal stubs
+#include <cstdio>
+#include <OSD_WhoAmI.hxx>
+#include <OSD_SIGHUP.hxx>
+#include <OSD_SIGINT.hxx>
+#include <OSD_SIGQUIT.hxx>
+#include <OSD_SIGILL.hxx>
+#include <OSD_SIGKILL.hxx>
+#include <OSD_SIGBUS.hxx>
+#include <OSD_SIGSEGV.hxx>
+#include <OSD_SIGSYS.hxx>
+#include <Standard_NumericError.hxx>
+
+#include <pthread.h>
+
+typedef void (*SIG_PFV)(int);
+
+#define _OSD_FPX (FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW)
+
+// WASI: no POSIX signals - provide minimal stubs
+static void Handler(const int /*theSignal*/) {}
+
+static void SegvHandler(const int) {}
+
+void OSD::SetFloatingSignal(bool /*theFloatingSignal*/) {}
+
+bool OSD::ToCatchFloatingSignals() { return false; }
+
+void OSD::SetThreadLocalSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::SetSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::ControlBreak() {}
+
+#endif // __wasi__
+#endif // ! _WIN32  exit(SIGSEGV);
 }
 
   #elif defined(_hpux) || defined(HPUX)
@@ -979,12 +1341,84 @@ static void SegvHandler(const int theSignal, siginfo_t* theSigInfo, void* const 
   {
     std::cout << "Wrong undefined address." << std::endl;
   }
-    #endif
-  exit(SIGSEGV);
+    #else // __wasi__
+
+// WASI doesn't have POSIX signals - provide minimal stubs
+#include <cstdio>
+#include <OSD_WhoAmI.hxx>
+#include <OSD_SIGHUP.hxx>
+#include <OSD_SIGINT.hxx>
+#include <OSD_SIGQUIT.hxx>
+#include <OSD_SIGILL.hxx>
+#include <OSD_SIGKILL.hxx>
+#include <OSD_SIGBUS.hxx>
+#include <OSD_SIGSEGV.hxx>
+#include <OSD_SIGSYS.hxx>
+#include <Standard_NumericError.hxx>
+
+#include <pthread.h>
+
+typedef void (*SIG_PFV)(int);
+
+#define _OSD_FPX (FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW)
+
+// WASI: no POSIX signals - provide minimal stubs
+static void Handler(const int /*theSignal*/) {}
+
+static void SegvHandler(const int) {}
+
+void OSD::SetFloatingSignal(bool /*theFloatingSignal*/) {}
+
+bool OSD::ToCatchFloatingSignals() { return false; }
+
+void OSD::SetThreadLocalSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::SetSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::ControlBreak() {}
+
+#endif // __wasi__
+#endif // ! _WIN32  exit(SIGSEGV);
 }
 
-  #endif
+  #else // __wasi__
 
+// WASI doesn't have POSIX signals - provide minimal stubs
+#include <cstdio>
+#include <OSD_WhoAmI.hxx>
+#include <OSD_SIGHUP.hxx>
+#include <OSD_SIGINT.hxx>
+#include <OSD_SIGQUIT.hxx>
+#include <OSD_SIGILL.hxx>
+#include <OSD_SIGKILL.hxx>
+#include <OSD_SIGBUS.hxx>
+#include <OSD_SIGSEGV.hxx>
+#include <OSD_SIGSYS.hxx>
+#include <Standard_NumericError.hxx>
+
+#include <pthread.h>
+
+typedef void (*SIG_PFV)(int);
+
+#define _OSD_FPX (FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW)
+
+// WASI: no POSIX signals - provide minimal stubs
+static void Handler(const int /*theSignal*/) {}
+
+static void SegvHandler(const int) {}
+
+void OSD::SetFloatingSignal(bool /*theFloatingSignal*/) {}
+
+bool OSD::ToCatchFloatingSignals() { return false; }
+
+void OSD::SetThreadLocalSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::SetSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::ControlBreak() {}
+
+#endif // __wasi__
+#endif // ! _WIN32
 //=================================================================================================
 
 void OSD::SetFloatingSignal(bool theFloatingSignal)
@@ -1009,12 +1443,84 @@ void OSD::SetFloatingSignal(bool theFloatingSignal)
   {
     #ifdef OCCT_DEBUG
     std::cerr << "ieee_handler does not work !!! KO\n";
-    #endif
-  }
+    #else // __wasi__
+
+// WASI doesn't have POSIX signals - provide minimal stubs
+#include <cstdio>
+#include <OSD_WhoAmI.hxx>
+#include <OSD_SIGHUP.hxx>
+#include <OSD_SIGINT.hxx>
+#include <OSD_SIGQUIT.hxx>
+#include <OSD_SIGILL.hxx>
+#include <OSD_SIGKILL.hxx>
+#include <OSD_SIGBUS.hxx>
+#include <OSD_SIGSEGV.hxx>
+#include <OSD_SIGSYS.hxx>
+#include <Standard_NumericError.hxx>
+
+#include <pthread.h>
+
+typedef void (*SIG_PFV)(int);
+
+#define _OSD_FPX (FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW)
+
+// WASI: no POSIX signals - provide minimal stubs
+static void Handler(const int /*theSignal*/) {}
+
+static void SegvHandler(const int) {}
+
+void OSD::SetFloatingSignal(bool /*theFloatingSignal*/) {}
+
+bool OSD::ToCatchFloatingSignals() { return false; }
+
+void OSD::SetThreadLocalSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::SetSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::ControlBreak() {}
+
+#endif // __wasi__
+#endif // ! _WIN32  }
   #else
   (void)theFloatingSignal;
-  #endif
-}
+  #else // __wasi__
+
+// WASI doesn't have POSIX signals - provide minimal stubs
+#include <cstdio>
+#include <OSD_WhoAmI.hxx>
+#include <OSD_SIGHUP.hxx>
+#include <OSD_SIGINT.hxx>
+#include <OSD_SIGQUIT.hxx>
+#include <OSD_SIGILL.hxx>
+#include <OSD_SIGKILL.hxx>
+#include <OSD_SIGBUS.hxx>
+#include <OSD_SIGSEGV.hxx>
+#include <OSD_SIGSYS.hxx>
+#include <Standard_NumericError.hxx>
+
+#include <pthread.h>
+
+typedef void (*SIG_PFV)(int);
+
+#define _OSD_FPX (FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW)
+
+// WASI: no POSIX signals - provide minimal stubs
+static void Handler(const int /*theSignal*/) {}
+
+static void SegvHandler(const int) {}
+
+void OSD::SetFloatingSignal(bool /*theFloatingSignal*/) {}
+
+bool OSD::ToCatchFloatingSignals() { return false; }
+
+void OSD::SetThreadLocalSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::SetSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::ControlBreak() {}
+
+#endif // __wasi__
+#endif // ! _WIN32}
 
 //=================================================================================================
 
@@ -1024,8 +1530,44 @@ bool OSD::ToCatchFloatingSignals()
   return (fegetexcept() & _OSD_FPX) != 0;
   #else
   return false;
-  #endif
-}
+  #else // __wasi__
+
+// WASI doesn't have POSIX signals - provide minimal stubs
+#include <cstdio>
+#include <OSD_WhoAmI.hxx>
+#include <OSD_SIGHUP.hxx>
+#include <OSD_SIGINT.hxx>
+#include <OSD_SIGQUIT.hxx>
+#include <OSD_SIGILL.hxx>
+#include <OSD_SIGKILL.hxx>
+#include <OSD_SIGBUS.hxx>
+#include <OSD_SIGSEGV.hxx>
+#include <OSD_SIGSYS.hxx>
+#include <Standard_NumericError.hxx>
+
+#include <pthread.h>
+
+typedef void (*SIG_PFV)(int);
+
+#define _OSD_FPX (FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW)
+
+// WASI: no POSIX signals - provide minimal stubs
+static void Handler(const int /*theSignal*/) {}
+
+static void SegvHandler(const int) {}
+
+void OSD::SetFloatingSignal(bool /*theFloatingSignal*/) {}
+
+bool OSD::ToCatchFloatingSignals() { return false; }
+
+void OSD::SetThreadLocalSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::SetSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::ControlBreak() {}
+
+#endif // __wasi__
+#endif // ! _WIN32}
 
 //=================================================================================================
 
@@ -1058,14 +1600,86 @@ void OSD::SetSignal(OSD_SignalMode theSignalMode, bool theFloatingSignal)
   anActSet.sa_flags = anActDfl.sa_flags = anActOld.sa_flags = SA_RESTART;
   #else
   anActSet.sa_flags = anActDfl.sa_flags = anActOld.sa_flags = 0;
-  #endif
-  #ifdef SA_SIGINFO
+  #else // __wasi__
+
+// WASI doesn't have POSIX signals - provide minimal stubs
+#include <cstdio>
+#include <OSD_WhoAmI.hxx>
+#include <OSD_SIGHUP.hxx>
+#include <OSD_SIGINT.hxx>
+#include <OSD_SIGQUIT.hxx>
+#include <OSD_SIGILL.hxx>
+#include <OSD_SIGKILL.hxx>
+#include <OSD_SIGBUS.hxx>
+#include <OSD_SIGSEGV.hxx>
+#include <OSD_SIGSYS.hxx>
+#include <Standard_NumericError.hxx>
+
+#include <pthread.h>
+
+typedef void (*SIG_PFV)(int);
+
+#define _OSD_FPX (FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW)
+
+// WASI: no POSIX signals - provide minimal stubs
+static void Handler(const int /*theSignal*/) {}
+
+static void SegvHandler(const int) {}
+
+void OSD::SetFloatingSignal(bool /*theFloatingSignal*/) {}
+
+bool OSD::ToCatchFloatingSignals() { return false; }
+
+void OSD::SetThreadLocalSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::SetSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::ControlBreak() {}
+
+#endif // __wasi__
+#endif // ! _WIN32  #ifdef SA_SIGINFO
   anActSet.sa_flags     = anActSet.sa_flags | SA_SIGINFO;
   anActSet.sa_sigaction = Handler;
   #else
   anActSet.sa_handler = Handler;
-  #endif
-  anActDfl.sa_handler = SIG_DFL;
+  #else // __wasi__
+
+// WASI doesn't have POSIX signals - provide minimal stubs
+#include <cstdio>
+#include <OSD_WhoAmI.hxx>
+#include <OSD_SIGHUP.hxx>
+#include <OSD_SIGINT.hxx>
+#include <OSD_SIGQUIT.hxx>
+#include <OSD_SIGILL.hxx>
+#include <OSD_SIGKILL.hxx>
+#include <OSD_SIGBUS.hxx>
+#include <OSD_SIGSEGV.hxx>
+#include <OSD_SIGSYS.hxx>
+#include <Standard_NumericError.hxx>
+
+#include <pthread.h>
+
+typedef void (*SIG_PFV)(int);
+
+#define _OSD_FPX (FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW)
+
+// WASI: no POSIX signals - provide minimal stubs
+static void Handler(const int /*theSignal*/) {}
+
+static void SegvHandler(const int) {}
+
+void OSD::SetFloatingSignal(bool /*theFloatingSignal*/) {}
+
+bool OSD::ToCatchFloatingSignals() { return false; }
+
+void OSD::SetThreadLocalSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::SetSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::ControlBreak() {}
+
+#endif // __wasi__
+#endif // ! _WIN32  anActDfl.sa_handler = SIG_DFL;
 
   // Set signal handlers; NB: SIGSEGV must be the last one!
   const int NBSIG = 8;
@@ -1080,8 +1694,44 @@ void OSD::SetSignal(OSD_SignalMode theSignalMode, bool theFloatingSignal)
       anActSet.sa_sigaction = /*(void(*)(int, siginfo_t *, void*))*/ SegvHandler;
   #else
       anActSet.sa_handler = /*(SIG_PFV)*/ SegvHandler;
-  #endif
-    }
+  #else // __wasi__
+
+// WASI doesn't have POSIX signals - provide minimal stubs
+#include <cstdio>
+#include <OSD_WhoAmI.hxx>
+#include <OSD_SIGHUP.hxx>
+#include <OSD_SIGINT.hxx>
+#include <OSD_SIGQUIT.hxx>
+#include <OSD_SIGILL.hxx>
+#include <OSD_SIGKILL.hxx>
+#include <OSD_SIGBUS.hxx>
+#include <OSD_SIGSEGV.hxx>
+#include <OSD_SIGSYS.hxx>
+#include <Standard_NumericError.hxx>
+
+#include <pthread.h>
+
+typedef void (*SIG_PFV)(int);
+
+#define _OSD_FPX (FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW)
+
+// WASI: no POSIX signals - provide minimal stubs
+static void Handler(const int /*theSignal*/) {}
+
+static void SegvHandler(const int) {}
+
+void OSD::SetFloatingSignal(bool /*theFloatingSignal*/) {}
+
+bool OSD::ToCatchFloatingSignals() { return false; }
+
+void OSD::SetThreadLocalSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::SetSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::ControlBreak() {}
+
+#endif // __wasi__
+#endif // ! _WIN32    }
 
     // set handler according to specified mode and current handler
     int retcode = -1;
@@ -1120,4 +1770,41 @@ void OSD ::ControlBreak()
   }
 }
 
-#endif
+#else // __wasi__
+
+// WASI doesn't have POSIX signals - provide minimal stubs
+#include <cstdio>
+#include <OSD_WhoAmI.hxx>
+#include <OSD_SIGHUP.hxx>
+#include <OSD_SIGINT.hxx>
+#include <OSD_SIGQUIT.hxx>
+#include <OSD_SIGILL.hxx>
+#include <OSD_SIGKILL.hxx>
+#include <OSD_SIGBUS.hxx>
+#include <OSD_SIGSEGV.hxx>
+#include <OSD_SIGSYS.hxx>
+#include <Standard_NumericError.hxx>
+
+#include <pthread.h>
+
+typedef void (*SIG_PFV)(int);
+
+#define _OSD_FPX (FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW)
+
+// WASI: no POSIX signals - provide minimal stubs
+static void Handler(const int /*theSignal*/) {}
+
+static void SegvHandler(const int) {}
+
+void OSD::SetFloatingSignal(bool /*theFloatingSignal*/) {}
+
+bool OSD::ToCatchFloatingSignals() { return false; }
+
+void OSD::SetThreadLocalSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::SetSignal(OSD_SignalMode /*theSignalMode*/, bool /*theFloatingSignal*/) {}
+
+void OSD::ControlBreak() {}
+
+#endif // __wasi__
+#endif // ! _WIN32
