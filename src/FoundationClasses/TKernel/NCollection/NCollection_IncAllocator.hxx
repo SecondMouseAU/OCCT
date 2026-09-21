@@ -22,7 +22,9 @@
 #include <utility>
 #include <atomic>
 #include <memory>
+#ifndef __wasi__
 #include <shared_mutex>
+#endif
 
 /**
  *  Class NCollection_IncAllocator - incremental memory  allocator. This class
@@ -144,7 +146,13 @@ public:
 private:
   unsigned int                       myBlockSize;      //!< Block size to incremental allocations
   unsigned int                       myBlockCount = 0; //!< Count of created blocks
+#ifndef __wasi__
   std::unique_ptr<std::shared_mutex> myMutex;          //!< Thread-safety shared mutex (owned, RAII)
+#else
+  // WASI noeh libc++ doesn't have shared_mutex - use spinlock
+  std::unique_ptr<std::atomic_flag> mySpinlock;      //!< Thread-safety spinlock (owned, RAII)
+  std::atomic<int>                  myReadersCount{0}; //!< Reader count for spinlock
+#endif
   IBlock*                            myAllocationHeap = nullptr; //!< Sorted list for allocations
   IBlock*                            myUsedHeap = nullptr; //!< Sorted list for store empty blocks
   IBlock* myOrderedBlocks = nullptr; //!< Ordered list for store growing size blocks

@@ -67,6 +67,7 @@ NCollection_IncAllocator::NCollection_IncAllocator(const size_t theDefaultSize)
 
 void NCollection_IncAllocator::SetThreadSafe(const bool theIsThreadSafe)
 {
+#ifndef __wasi__
   if (theIsThreadSafe)
   {
     if (!myMutex)
@@ -78,6 +79,21 @@ void NCollection_IncAllocator::SetThreadSafe(const bool theIsThreadSafe)
   {
     myMutex.reset();
   }
+#else
+  if (theIsThreadSafe)
+  {
+    if (!mySpinlock)
+    {
+      mySpinlock = std::make_unique<std::atomic_flag>();
+      mySpinlock->clear(std::memory_order_relaxed);
+    }
+  }
+  else
+  {
+    mySpinlock.reset();
+    myReadersCount.store(0, std::memory_order_relaxed);
+  }
+#endif
 }
 
 //=================================================================================================
