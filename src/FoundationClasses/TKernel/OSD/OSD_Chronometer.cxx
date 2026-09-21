@@ -43,6 +43,10 @@
     #define CLK_TCK CLOCKS_PER_SEC
   #endif
 
+#ifdef __wasi__
+  // With -D_WASI_EMULATED_PROCESS_CLOCKS, times() is provided by libwasi-emulated-process-clocks
+#endif
+
   #if (defined(__APPLE__))
     #include <mach/task.h>
     #include <mach/mach.h>
@@ -59,11 +63,15 @@ void OSD_Chronometer::GetProcessCPU(double& theUserSeconds, double& theSystemSec
   static const long aCLK_TCK = CLK_TCK;
   #endif
 
+#ifdef __wasi__
+  theUserSeconds = theSystemSeconds = 0.0;
+#else
   tms aCurrentTMS{};
   times(&aCurrentTMS);
 
   theUserSeconds   = (double)aCurrentTMS.tms_utime / aCLK_TCK;
   theSystemSeconds = (double)aCurrentTMS.tms_stime / aCLK_TCK;
+#endif
 }
 
 //=================================================================================================
