@@ -764,7 +764,18 @@ void OSD_File::BuildTemporary()
   unlink("dummy");                                 // removes dummy file
   #else
   char aTmpName[] = "/tmp/CSFXXXXXX";
+#ifdef __wasi__
+  // WASI doesn't have mkstemp, create temp file manually
+  int counter = 0;
+  char aTmpName2[64];
+  snprintf(aTmpName2, sizeof(aTmpName2), "/tmp/occt_%d_%d", getpid(), counter++);
+  myFileChannel = open(aTmpName2, O_CREAT | O_EXCL | O_RDWR, 0600);
+  if (myFileChannel >= 0) {
+    strcpy(aTmpName, aTmpName2);  // use the generated name
+  }
+#else
   myFileChannel   = mkstemp(aTmpName);
+#endif
   const TCollection_AsciiString aName(aTmpName);
   const OSD_Path                aPath(aName);
   SetPath(aPath);
@@ -1383,6 +1394,14 @@ void OSD_File::SetLock(const OSD_LockType theLock)
     myLock = theLock;
   }
 #elif defined(SYSV)
+#ifdef __wasi__
+  // WASI doesn't have fcntl file locking; use simple busy-wait with spinlock
+  static thread_local std::atomic_flag fileLock = ATOMIC_FLAG_INIT;
+  while (fileLock.test_and_set(std::memory_order_acquire)) {
+    // busy wait
+  }
+  const int aStatus = 0;
+#else
   struct flock aLockKey;
   aLockKey.l_whence = 0;
   aLockKey.l_start  = 0;
@@ -1402,6 +1421,7 @@ void OSD_File::SetLock(const OSD_LockType theLock)
   }
 
   const int aStatus = fcntl(myFileChannel, F_SETLKW, &aLockKey);
+#endif
   if (aStatus == -1)
   {
     myError.SetValue(errno, Iam, "SetLock");
@@ -1420,6 +1440,7 @@ void OSD_File::SetLock(const OSD_LockType theLock)
     chmod(aFilePath.ToCString(), aStatBuf.st_mode | S_ISGID);
     ImperativeFlag = true;
   }
+#endif
 #else /* BSD */
   int aLock = 0;
   switch (theLock)
@@ -1540,6 +1561,12 @@ void OSD_File::UnLock()
 }
 
 //=================================================================================================
+
+
+#ifdef __wasi__
+  // WASI: no flock, but we don't reach here in WASI single-threaded model
+  // This is just to satisfy the #ifdef structure
+#endif
 
 size_t OSD_File::Size()
 {
