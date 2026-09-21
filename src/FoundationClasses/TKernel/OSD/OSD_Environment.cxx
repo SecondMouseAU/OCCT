@@ -134,8 +134,14 @@ void OSD_Environment::Build()
   static int    Ibuffer = 0;       // Tout ca pour putenv,getenv
 
   // Use mutex to avoid concurrent access to the buffer
+#ifdef __wasi__
+  // WASI noeh libc++ doesn't have std::mutex; use a simple spinlock
+  static int aSpinlock = 0;
+  while (__sync_lock_test_and_set(&aSpinlock, 1)) {}
+#else
   static std::mutex           aMutex;
   std::lock_guard<std::mutex> aLock(aMutex);
+#endif
 
   // check if such variable has already been created in the buffer
   int index = -1, len = myName.Length();
@@ -178,6 +184,10 @@ void OSD_Environment::Build()
 
   // then (and only then!) free old entry, if existed
   free(old_value);
+
+#ifdef __wasi__
+  __sync_lock_release(&aSpinlock);
+#endif
 
   // check the result
   char* result = getenv(myName.ToCString());
