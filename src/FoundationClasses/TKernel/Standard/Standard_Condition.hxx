@@ -19,9 +19,11 @@
 #include <Standard_Macro.hxx>
 
 #include <atomic>
+#ifndef __wasi__
 #include <condition_variable>
 #include <chrono>
 #include <mutex>
+#endif
 
 //! This is boolean flag intended for communication between threads.
 //! One thread sets this flag to TRUE to indicate some event happened
