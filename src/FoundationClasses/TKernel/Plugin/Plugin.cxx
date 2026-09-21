@@ -55,7 +55,15 @@ occ::handle<Standard_Transient> Plugin::Load(const Standard_GUID& aGUID, const b
   }
 
   // Slow path: exclusive lock for plugin loading.
+#ifndef __wasi__
   std::unique_lock<std::shared_mutex> aWriteLock(aMapMutex);
+#else
+  // WASI: spinlock-based write lock
+  while (aWriterLock.test_and_set(std::memory_order_acquire)) {}
+  while (aReadersCount > 0) {
+    // wait for readers to finish
+  }
+#endif
   if (!theMapOfFunctions.IsBound(pid))
   {
     occ::handle<Resource_Manager> PluginResource = new Resource_Manager("Plugin");
@@ -120,7 +128,11 @@ occ::handle<Standard_Transient> Plugin::Load(const Standard_GUID& aGUID, const b
   {
     f = theMapOfFunctions(pid);
   }
+#ifndef __wasi__
   aWriteLock.unlock();
+#else
+  aWriterLock.clear(std::memory_order_release);
+#endif
 
   // Cast through void* to avoid -Wcast-function-type-mismatch warning.
   // This is safe for dynamically loaded plugin symbols.
