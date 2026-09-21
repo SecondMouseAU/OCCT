@@ -26,7 +26,13 @@ const OSD_WhoAmI Iam = OSD_WHost;
   #include <cerrno>
 
   #include <sys/utsname.h> // For 'uname'
+#ifndef __wasi__
+#ifndef __wasi__
   #include <netdb.h>       // This is for 'gethostbyname'
+  #include <sys/socket.h>  // For AF_INET
+#endif
+  #include <sys/socket.h>  // For AF_INET
+#endif
   #include <unistd.h>
   #include <cstdio>
 
@@ -161,12 +167,29 @@ TCollection_AsciiString OSD_Host::InternetAddress()
   char                    buffer[16];
   TCollection_AsciiString result, host;
 
+#ifdef __wasi__
+  // WASI doesn't have gethostbyname; return localhost (127.0.0.1)
+  struct hostent {
+    char* h_name;
+    char** h_aliases;
+    int h_addrtype;
+    int h_length;
+    char** h_addr_list;
+  };
+  static struct hostent aLocalhost;
+  static char* localhost_aliases[] = { (char*)"localhost", nullptr };
+  static char localhost_addr[] = { 127, 0, 0, 1 };
+  static char* localhost_addrs[] = { localhost_addr, nullptr };
+  static struct hostent aLocalhost = { (char*)"localhost", (char**)localhost_aliases, AF_INET, 4, (char**)localhost_addrs };
+  const auto* aHostByName = &aLocalhost;
+#else
   host                    = HostName();
   const auto* aHostByName = gethostbyname(host.ToCString());
   if (aHostByName == nullptr)
   {
     aHostByName = gethostbyname("localhost");
   }
+#endif
   memcpy(&internet_address, aHostByName, sizeof(struct hostent));
 
   // Gets each bytes into integers
