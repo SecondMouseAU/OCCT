@@ -21,7 +21,9 @@
 #include <NCollection_Array1.hxx>
 #include <OSD_Thread.hxx>
 
+#ifndef __wasi__
 #include <mutex>
+#endif
 
 namespace
 {
@@ -40,9 +42,9 @@ public:
     //! Constructor
     Range(const OSD_Parallel::UniversalIterator& theBegin,
           const OSD_Parallel::UniversalIterator& theEnd)
-        : myBegin(theBegin),
-          myEnd(theEnd),
-          myIt(theBegin)
+      : myBegin(theBegin),
+        myEnd(theEnd),
+        myIt(theBegin)
     {
     }
 
@@ -56,8 +58,13 @@ public:
     //! Thread-safe method.
     inline OSD_Parallel::UniversalIterator It() const
     {
+#ifdef __wasi__
+      // WASI: no mutex, single-threaded
+      return (myIt != myEnd) ? myIt++ : myEnd;
+#else
       std::lock_guard<std::mutex> aMutex(myMutex);
       return (myIt != myEnd) ? myIt++ : myEnd;
+#endif
     }
 
   private: //! @name private methods
@@ -70,10 +77,12 @@ public:
   private:                                          //! @name private fields
     const OSD_Parallel::UniversalIterator& myBegin; //!< First element of range.
     const OSD_Parallel::UniversalIterator& myEnd;   //!< Last element of range.
-                                                    // clang-format off
+                                                     // clang-format off
       mutable OSD_Parallel::UniversalIterator   myIt;    //!< First non processed element of range.
+#ifndef __wasi__
       mutable std::mutex                        myMutex; //!< Access controller for the first non processed element.
-                                                    // clang-format on
+#endif
+                                                     // clang-format on
   };
 
   //! Auxiliary wrapper class for thread function.
@@ -130,8 +139,7 @@ public:
       perform(aJob);
     }
   };
-};
-} // namespace
+}; // namespace
 
 //=================================================================================================
 
