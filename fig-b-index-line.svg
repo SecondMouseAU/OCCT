@@ -1,0 +1,157 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1018" viewBox="0 0 1600 1018" font-family="Helvetica, Arial, sans-serif">
+<rect width="1600" height="1018" fill="#ffffff"/>
+<title>Which contour each index reaches, before and after the change</title>
+<text x="30.0" y="42.0" font-size="32" font-weight="bold" text-anchor="start" fill="#1f2328">Which contour does an index reach?</text>
+<text x="30.0" y="74.0" font-size="18" font-weight="normal" text-anchor="start" fill="#57606a">BRepFilletAPI_MakeFillet with two contours (two edges of a 10 x 10 x 10 box), nothing built. BRepFilletAPI_MakeChamfer gives the same results.</text>
+<text x="30.0" y="98.0" font-size="18" font-weight="normal" text-anchor="start" fill="#57606a">Values under each index are measured: Edge(I, 1) against the two edges added, NbEdges(I) and Length(I).</text>
+<text x="30.0" y="156.0" font-size="28" font-weight="bold" text-anchor="start" fill="#1f2328">Before</text>
+<line x1="220.0" y1="220" x2="1570.0" y2="220" stroke="#57606a" stroke-width="2"/>
+<line x1="313.8" y1="214" x2="313.8" y2="226" stroke="#57606a" stroke-width="2"/>
+<text x="313.8" y="204.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1f2328">I = INT_MIN</text>
+<line x1="481.2" y1="214" x2="481.2" y2="226" stroke="#57606a" stroke-width="2"/>
+<text x="481.2" y="204.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1f2328">I = -1</text>
+<line x1="648.8" y1="214" x2="648.8" y2="226" stroke="#57606a" stroke-width="2"/>
+<text x="648.8" y="204.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1f2328">I = 0</text>
+<line x1="816.2" y1="214" x2="816.2" y2="226" stroke="#57606a" stroke-width="2"/>
+<text x="816.2" y="204.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1f2328">I = 1</text>
+<line x1="983.8" y1="214" x2="983.8" y2="226" stroke="#57606a" stroke-width="2"/>
+<text x="983.8" y="204.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1f2328">I = 2</text>
+<line x1="1151.2" y1="214" x2="1151.2" y2="226" stroke="#57606a" stroke-width="2"/>
+<text x="1151.2" y="204.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1f2328">I = 3</text>
+<line x1="1318.8" y1="214" x2="1318.8" y2="226" stroke="#57606a" stroke-width="2"/>
+<text x="1318.8" y="204.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1f2328">I = 100000</text>
+<line x1="1486.2" y1="214" x2="1486.2" y2="226" stroke="#57606a" stroke-width="2"/>
+<text x="1486.2" y="204.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1f2328">I = INT_MAX</text>
+<line x1="392.5" y1="229" x2="398.5" y2="211" stroke="#57606a" stroke-width="2"/>
+<line x1="398.5" y1="229" x2="404.5" y2="211" stroke="#57606a" stroke-width="2"/>
+<line x1="1230.0" y1="229" x2="1236.0" y2="211" stroke="#57606a" stroke-width="2"/>
+<line x1="1236.0" y1="229" x2="1242.0" y2="211" stroke="#57606a" stroke-width="2"/>
+<rect x="745.9" y="234" width="308.2" height="6" fill="#1f2328"/>
+<text x="900.0" y="262.0" font-size="17" font-weight="normal" text-anchor="middle" fill="#1f2328">valid: 1 .. NbContours() = 1 .. 2</text>
+<text x="30.0" y="300.0" font-size="18" font-weight="bold" text-anchor="start" fill="#1f2328">Edge(I, 1)</text>
+<text x="313.8" y="300.0" font-size="20" font-weight="normal" text-anchor="middle" fill="#1f2328">contour 1</text>
+<text x="481.2" y="300.0" font-size="20" font-weight="normal" text-anchor="middle" fill="#1f2328">contour 1</text>
+<text x="648.8" y="300.0" font-size="20" font-weight="normal" text-anchor="middle" fill="#1f2328">contour 1</text>
+<text x="816.2" y="300.0" font-size="20" font-weight="normal" text-anchor="middle" fill="#1f2328">contour 1</text>
+<text x="983.8" y="300.0" font-size="20" font-weight="normal" text-anchor="middle" fill="#1f2328">contour 2</text>
+<text x="1151.2" y="300.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#b3400f">crash</text>
+<text x="1318.8" y="300.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#b3400f">crash</text>
+<text x="1486.2" y="300.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#b3400f">crash</text>
+<text x="30.0" y="330.0" font-size="18" font-weight="bold" text-anchor="start" fill="#1f2328">NbEdges(I)</text>
+<text x="313.8" y="330.0" font-size="20" font-weight="normal" text-anchor="middle" fill="#1f2328">1</text>
+<text x="481.2" y="330.0" font-size="20" font-weight="normal" text-anchor="middle" fill="#1f2328">1</text>
+<text x="648.8" y="330.0" font-size="20" font-weight="normal" text-anchor="middle" fill="#1f2328">1</text>
+<text x="816.2" y="330.0" font-size="20" font-weight="normal" text-anchor="middle" fill="#1f2328">1</text>
+<text x="983.8" y="330.0" font-size="20" font-weight="normal" text-anchor="middle" fill="#1f2328">1</text>
+<text x="1151.2" y="330.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#b3400f">crash</text>
+<text x="1318.8" y="330.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#b3400f">crash</text>
+<text x="1486.2" y="330.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#b3400f">crash</text>
+<text x="30.0" y="360.0" font-size="18" font-weight="bold" text-anchor="start" fill="#1f2328">Length(I)</text>
+<text x="313.8" y="360.0" font-size="20" font-weight="normal" text-anchor="middle" fill="#1f2328">10</text>
+<text x="481.2" y="360.0" font-size="20" font-weight="normal" text-anchor="middle" fill="#1f2328">10</text>
+<text x="648.8" y="360.0" font-size="20" font-weight="normal" text-anchor="middle" fill="#1f2328">10</text>
+<text x="816.2" y="360.0" font-size="20" font-weight="normal" text-anchor="middle" fill="#1f2328">10</text>
+<text x="983.8" y="360.0" font-size="20" font-weight="normal" text-anchor="middle" fill="#1f2328">10</text>
+<text x="1151.2" y="360.0" font-size="20" font-weight="normal" text-anchor="middle" fill="#1f2328">-1</text>
+<text x="1318.8" y="360.0" font-size="20" font-weight="normal" text-anchor="middle" fill="#1f2328">-1</text>
+<text x="1486.2" y="360.0" font-size="20" font-weight="normal" text-anchor="middle" fill="#1f2328">-1</text>
+<rect x="236.7" y="460" width="656.6" height="56" rx="6" fill="#dcdad4"/>
+<text x="565.0" y="495.0" font-size="21" font-weight="bold" text-anchor="middle" fill="#1f2328">contour 1</text>
+<line x1="313.8" y1="370.0" x2="313.8" y2="459" stroke="#57606a" stroke-width="2"/>
+<polygon points="313.8,460 307.8,450 319.8,450" fill="#57606a"/>
+<line x1="481.2" y1="370.0" x2="481.2" y2="459" stroke="#57606a" stroke-width="2"/>
+<polygon points="481.2,460 475.2,450 487.2,450" fill="#57606a"/>
+<line x1="648.8" y1="370.0" x2="648.8" y2="459" stroke="#57606a" stroke-width="2"/>
+<polygon points="648.8,460 642.8,450 654.8,450" fill="#57606a"/>
+<line x1="816.2" y1="370.0" x2="816.2" y2="459" stroke="#57606a" stroke-width="2"/>
+<polygon points="816.2,460 810.2,450 822.2,450" fill="#57606a"/>
+<rect x="906.7" y="460" width="154.1" height="56" rx="6" fill="#dcdad4"/>
+<text x="983.8" y="495.0" font-size="21" font-weight="bold" text-anchor="middle" fill="#1f2328">contour 2</text>
+<line x1="983.8" y1="370.0" x2="983.8" y2="459" stroke="#57606a" stroke-width="2"/>
+<polygon points="983.8,460 977.8,450 989.8,450" fill="#57606a"/>
+<rect x="1074.2" y="460" width="489.1" height="56" rx="6" fill="#eb6834"/>
+<text x="1318.8" y="495.0" font-size="21" font-weight="bold" text-anchor="middle" fill="#1f2328">past the end of the list: crash</text>
+<line x1="1151.2" y1="370.0" x2="1151.2" y2="459" stroke="#57606a" stroke-width="2"/>
+<polygon points="1151.2,460 1145.2,450 1157.2,450" fill="#57606a"/>
+<line x1="1318.8" y1="370.0" x2="1318.8" y2="459" stroke="#57606a" stroke-width="2"/>
+<polygon points="1318.8,460 1312.8,450 1324.8,450" fill="#57606a"/>
+<line x1="1486.2" y1="370.0" x2="1486.2" y2="459" stroke="#57606a" stroke-width="2"/>
+<polygon points="1486.2,460 1480.2,450 1492.2,450" fill="#57606a"/>
+<line x1="30" y1="536" x2="1570" y2="536" stroke="#d0d7de" stroke-width="1"/>
+<text x="30.0" y="592.0" font-size="28" font-weight="bold" text-anchor="start" fill="#1f2328">After</text>
+<line x1="220.0" y1="656" x2="1570.0" y2="656" stroke="#57606a" stroke-width="2"/>
+<line x1="313.8" y1="650" x2="313.8" y2="662" stroke="#57606a" stroke-width="2"/>
+<text x="313.8" y="640.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1f2328">I = INT_MIN</text>
+<line x1="481.2" y1="650" x2="481.2" y2="662" stroke="#57606a" stroke-width="2"/>
+<text x="481.2" y="640.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1f2328">I = -1</text>
+<line x1="648.8" y1="650" x2="648.8" y2="662" stroke="#57606a" stroke-width="2"/>
+<text x="648.8" y="640.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1f2328">I = 0</text>
+<line x1="816.2" y1="650" x2="816.2" y2="662" stroke="#57606a" stroke-width="2"/>
+<text x="816.2" y="640.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1f2328">I = 1</text>
+<line x1="983.8" y1="650" x2="983.8" y2="662" stroke="#57606a" stroke-width="2"/>
+<text x="983.8" y="640.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1f2328">I = 2</text>
+<line x1="1151.2" y1="650" x2="1151.2" y2="662" stroke="#57606a" stroke-width="2"/>
+<text x="1151.2" y="640.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1f2328">I = 3</text>
+<line x1="1318.8" y1="650" x2="1318.8" y2="662" stroke="#57606a" stroke-width="2"/>
+<text x="1318.8" y="640.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1f2328">I = 100000</text>
+<line x1="1486.2" y1="650" x2="1486.2" y2="662" stroke="#57606a" stroke-width="2"/>
+<text x="1486.2" y="640.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1f2328">I = INT_MAX</text>
+<line x1="392.5" y1="665" x2="398.5" y2="647" stroke="#57606a" stroke-width="2"/>
+<line x1="398.5" y1="665" x2="404.5" y2="647" stroke="#57606a" stroke-width="2"/>
+<line x1="1230.0" y1="665" x2="1236.0" y2="647" stroke="#57606a" stroke-width="2"/>
+<line x1="1236.0" y1="665" x2="1242.0" y2="647" stroke="#57606a" stroke-width="2"/>
+<rect x="745.9" y="670" width="308.2" height="6" fill="#1f2328"/>
+<text x="900.0" y="698.0" font-size="17" font-weight="normal" text-anchor="middle" fill="#1f2328">valid: 1 .. NbContours() = 1 .. 2</text>
+<text x="30.0" y="736.0" font-size="18" font-weight="bold" text-anchor="start" fill="#1f2328">Edge(I, 1)</text>
+<text x="313.8" y="736.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1c5cab">raises</text>
+<text x="481.2" y="736.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1c5cab">raises</text>
+<text x="648.8" y="736.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1c5cab">raises</text>
+<text x="816.2" y="736.0" font-size="20" font-weight="normal" text-anchor="middle" fill="#1f2328">contour 1</text>
+<text x="983.8" y="736.0" font-size="20" font-weight="normal" text-anchor="middle" fill="#1f2328">contour 2</text>
+<text x="1151.2" y="736.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1c5cab">raises</text>
+<text x="1318.8" y="736.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1c5cab">raises</text>
+<text x="1486.2" y="736.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1c5cab">raises</text>
+<text x="30.0" y="766.0" font-size="18" font-weight="bold" text-anchor="start" fill="#1f2328">NbEdges(I)</text>
+<text x="313.8" y="766.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1c5cab">raises</text>
+<text x="481.2" y="766.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1c5cab">raises</text>
+<text x="648.8" y="766.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1c5cab">raises</text>
+<text x="816.2" y="766.0" font-size="20" font-weight="normal" text-anchor="middle" fill="#1f2328">1</text>
+<text x="983.8" y="766.0" font-size="20" font-weight="normal" text-anchor="middle" fill="#1f2328">1</text>
+<text x="1151.2" y="766.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1c5cab">raises</text>
+<text x="1318.8" y="766.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1c5cab">raises</text>
+<text x="1486.2" y="766.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1c5cab">raises</text>
+<text x="30.0" y="796.0" font-size="18" font-weight="bold" text-anchor="start" fill="#1f2328">Length(I)</text>
+<text x="313.8" y="796.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1c5cab">raises</text>
+<text x="481.2" y="796.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1c5cab">raises</text>
+<text x="648.8" y="796.0" font-size="20" font-weight="bold" text-anchor="middle" fill="#1c5cab">raises</text>
+<text x="816.2" y="796.0" font-size="20" font-weight="normal" text-anchor="middle" fill="#1f2328">10</text>
+<text x="983.8" y="796.0" font-size="20" font-weight="normal" text-anchor="middle" fill="#1f2328">10</text>
+<text x="1151.2" y="796.0" font-size="20" font-weight="normal" text-anchor="middle" fill="#1f2328">-1</text>
+<text x="1318.8" y="796.0" font-size="20" font-weight="normal" text-anchor="middle" fill="#1f2328">-1</text>
+<text x="1486.2" y="796.0" font-size="20" font-weight="normal" text-anchor="middle" fill="#1f2328">-1</text>
+<rect x="236.7" y="896" width="489.1" height="56" rx="6" fill="#2a78d6"/>
+<text x="481.2" y="931.0" font-size="21" font-weight="bold" text-anchor="middle" fill="#ffffff">Standard_OutOfRange</text>
+<line x1="313.8" y1="806.0" x2="313.8" y2="895" stroke="#57606a" stroke-width="2"/>
+<polygon points="313.8,896 307.8,886 319.8,886" fill="#57606a"/>
+<line x1="481.2" y1="806.0" x2="481.2" y2="895" stroke="#57606a" stroke-width="2"/>
+<polygon points="481.2,896 475.2,886 487.2,886" fill="#57606a"/>
+<line x1="648.8" y1="806.0" x2="648.8" y2="895" stroke="#57606a" stroke-width="2"/>
+<polygon points="648.8,896 642.8,886 654.8,886" fill="#57606a"/>
+<rect x="739.2" y="896" width="154.1" height="56" rx="6" fill="#dcdad4"/>
+<text x="816.2" y="931.0" font-size="21" font-weight="bold" text-anchor="middle" fill="#1f2328">contour 1</text>
+<line x1="816.2" y1="806.0" x2="816.2" y2="895" stroke="#57606a" stroke-width="2"/>
+<polygon points="816.2,896 810.2,886 822.2,886" fill="#57606a"/>
+<rect x="906.7" y="896" width="154.1" height="56" rx="6" fill="#dcdad4"/>
+<text x="983.8" y="931.0" font-size="21" font-weight="bold" text-anchor="middle" fill="#1f2328">contour 2</text>
+<line x1="983.8" y1="806.0" x2="983.8" y2="895" stroke="#57606a" stroke-width="2"/>
+<polygon points="983.8,896 977.8,886 989.8,886" fill="#57606a"/>
+<rect x="1074.2" y="896" width="489.1" height="56" rx="6" fill="#2a78d6"/>
+<text x="1318.8" y="931.0" font-size="21" font-weight="bold" text-anchor="middle" fill="#ffffff">Standard_OutOfRange</text>
+<line x1="1151.2" y1="806.0" x2="1151.2" y2="895" stroke="#57606a" stroke-width="2"/>
+<polygon points="1151.2,896 1145.2,886 1157.2,886" fill="#57606a"/>
+<line x1="1318.8" y1="806.0" x2="1318.8" y2="895" stroke="#57606a" stroke-width="2"/>
+<polygon points="1318.8,896 1312.8,886 1324.8,886" fill="#57606a"/>
+<line x1="1486.2" y1="806.0" x2="1486.2" y2="895" stroke="#57606a" stroke-width="2"/>
+<polygon points="1486.2,896 1480.2,886 1492.2,886" fill="#57606a"/>
+<text x="30.0" y="988.0" font-size="18" font-weight="normal" text-anchor="start" fill="#57606a">Length(I) is unchanged above the range: it already answered -1 there and still does.</text>
+</svg>
